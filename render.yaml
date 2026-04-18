@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: quizzgame
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /data/quizzgame.db
+    disk:
+      name: quizzgame-data
+      mountPath: /data
+      sizeGB: 1

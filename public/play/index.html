@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>QuizzGame — Joueur</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f7fb; --surface: #fff; --border: #e5e8f0; --text: #1a1a2e;
+      --muted: #8a8fa8; --accent: #e94560; --green: #06d6a0;
+      --ca: #3a80c8; --ca-bg: #eef5fd; --ca-border: #b8d8f5;
+      --cb: #1e9970; --cb-bg: #edfaf5; --cb-border: #7dd9be;
+      --cc: #c97820; --cc-bg: #fdf4e8; --cc-border: #f5c87a;
+      --cd: #b03c80; --cd-bg: #fdeef6; --cd-border: #f0a8d0;
+      --radius: 14px; --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; display: flex; flex-direction: column; }
+    .hidden { display: none !important; }
+    .screen { flex: 1; display: flex; flex-direction: column; padding: 1.25rem; max-width: 480px; margin: 0 auto; width: 100%; gap: .9rem; }
+
+    /* ── Join ── */
+    #join-screen { justify-content: center; gap: 1.75rem; }
+    .app-title { text-align: center; font-size: 2.2rem; font-weight: 900; }
+    .app-title span { color: var(--accent); }
+    .card { background: var(--surface); border-radius: var(--radius); border: 1.5px solid var(--border); padding: 1.25rem; }
+    .field { display: flex; flex-direction: column; gap: .3rem; }
+    .field label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .field input {
+      background: var(--surface); color: var(--text); border: 2px solid var(--border);
+      border-radius: 10px; padding: .8rem 1rem; font-size: 1rem; font-family: var(--font); width: 100%;
+    }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: .4rem;
+      padding: .85rem 1.4rem; border: none; border-radius: var(--radius);
+      font-size: 1rem; font-weight: 700; cursor: pointer; font-family: var(--font);
+      transition: filter .12s, transform .08s; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.08); }
+
+    /* ── Lobby ── */
+    #lobby-screen { justify-content: center; align-items: center; text-align: center; gap: 1.1rem; }
+    .lobby-name { font-size: 1.5rem; font-weight: 800; }
+    .lobby-code { font-size: 2.8rem; font-weight: 900; letter-spacing: .25em; color: var(--accent); font-family: monospace; }
+    .waiting-anim { color: var(--muted); font-size: .9rem; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+    /* ── Waiting ── */
+    #waiting-screen { justify-content: center; align-items: center; }
+
+    /* ── Question card (shared) ── */
+    .q-card {
+      background: var(--surface); border-radius: var(--radius); border: 1.5px solid var(--border);
+      padding: 1.1rem 1.15rem;
+    }
+    .q-badge { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .3rem; }
+    .q-text  { font-size: 1.15rem; font-weight: 600; line-height: 1.45; }
+
+    /* ── Mode selection screen ── */
+    #mode-screen { gap: 1rem; padding-top: 1.25rem; }
+    .mode-hint { font-size: .85rem; color: var(--muted); text-align: center; }
+    .mode-cards { display: flex; flex-direction: column; gap: .6rem; }
+    .mode-card {
+      display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.2rem;
+      background: var(--surface); border-radius: var(--radius); border: 2px solid var(--border);
+      cursor: pointer; text-align: left; font-family: var(--font);
+      transition: border-color .12s, background .12s, transform .08s;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      width: 100%;
+    }
+    .mode-card:active { transform: scale(.98); }
+    .mode-card:hover { border-color: var(--accent); }
+    .mode-icon {
+      width: 3rem; height: 3rem; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    }
+    .mode-card.duo   .mode-icon { background: #eef5fd; }
+    .mode-card.carre .mode-icon { background: #edfaf5; }
+    .mode-card.cash  .mode-icon { background: #fdf4e8; }
+    .mode-info { flex: 1; }
+    .mode-name  { font-size: 1rem; font-weight: 800; }
+    .mode-desc  { font-size: .8rem; color: var(--muted); margin-top: .15rem; }
+    .mode-pts   {
+      font-size: 1.3rem; font-weight: 900; flex-shrink: 0; padding: .3rem .65rem;
+      border-radius: 8px; background: var(--bg);
+    }
+    .mode-card.duo   .mode-pts { color: var(--ca); }
+    .mode-card.carre .mode-pts { color: var(--cb); }
+    .mode-card.cash  .mode-pts { color: var(--cc); }
+
+    /* ── Vote screen ── */
+    #vote-screen { gap: .7rem; padding-top: 1.25rem; }
+    .vote-mode-bar {
+      display: flex; align-items: center; gap: .5rem; padding: .4rem .75rem;
+      background: var(--surface); border-radius: 8px; border: 1.5px solid var(--border);
+      font-size: .78rem;
+    }
+    .vote-mode-badge {
+      font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+      padding: .2rem .55rem; border-radius: 999px; color: #fff;
+    }
+    .vote-mode-badge.duo   { background: var(--ca); }
+    .vote-mode-badge.carre { background: var(--cb); }
+    .choices-list { display: flex; flex-direction: column; gap: .6rem; }
+    .choice-btn {
+      width: 100%; border: 2px solid transparent; border-radius: 12px;
+      padding: 1rem 1.1rem; cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: .8rem;
+      font-size: 1rem; font-weight: 600; font-family: var(--font);
+      transition: border-color .12s, background .12s, transform .08s;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    }
+    .choice-btn:active:not(:disabled) { transform: scale(.98); }
+    .choice-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .choice-btn.ca { background: var(--ca-bg); border-color: var(--ca-border); }
+    .choice-btn.cb { background: var(--cb-bg); border-color: var(--cb-border); }
+    .choice-btn.cc { background: var(--cc-bg); border-color: var(--cc-border); }
+    .choice-btn.cd { background: var(--cd-bg); border-color: var(--cd-border); }
+    .choice-btn.selected.ca { border-color: var(--ca); box-shadow: 0 0 0 3px rgba(58,128,200,.2); }
+    .choice-btn.selected.cb { border-color: var(--cb); box-shadow: 0 0 0 3px rgba(30,153,112,.2); }
+    .choice-btn.selected.cc { border-color: var(--cc); box-shadow: 0 0 0 3px rgba(201,120,32,.2); }
+    .choice-btn.selected.cd { border-color: var(--cd); box-shadow: 0 0 0 3px rgba(176,60,128,.2); }
+    .cl {
+      width: 2rem; height: 2rem; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 900; color: #fff;
+    }
+    .ca .cl { background: var(--ca); } .cb .cl { background: var(--cb); }
+    .cc .cl { background: var(--cc); } .cd .cl { background: var(--cd); }
+    .voted-msg { text-align: center; color: var(--green); font-weight: 700; font-size: .95rem; }
+
+    /* ── Cash screen ── */
+    #cash-screen { gap: .75rem; padding-top: 1.25rem; }
+    #cash-input {
+      background: var(--surface); color: var(--text); border: 2px solid var(--border);
+      border-radius: 10px; padding: 1rem; font-size: 1.1rem; font-family: var(--font); width: 100%;
+    }
+    #cash-input:focus { outline: none; border-color: var(--accent); }
+    #cash-sent { text-align: center; color: var(--green); font-weight: 700; }
+
+    /* ── Buzzer screen (dark) ── */
+    #buzzer-screen {
+      background: #0f0f1a; position: fixed; inset: 0; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
+    }
+    #buzz-question {
+      color: #ccd; font-size: 1.1rem; font-weight: 600; text-align: center;
+      padding: 0 2rem; line-height: 1.5; max-width: 360px;
+    }
+    .buzz-ring-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+    .buzz-ring {
+      width: 265px; height: 265px; border-radius: 50%; position: absolute;
+      background: radial-gradient(circle, rgba(255,120,50,.12), transparent 70%);
+      border: 3px solid rgba(255,120,50,.3);
+      animation: ringPulse 2s ease-in-out infinite;
+    }
+    @keyframes ringPulse { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.06);opacity:1} }
+    #buzz-btn {
+      position: relative; z-index: 1;
+      width: 220px; height: 220px; border-radius: 50%; border: none; cursor: pointer;
+      background: radial-gradient(circle at 38% 32%, #ff9a5c, #e95420 55%, #c43e10);
+      color: #fff; font-size: 1.8rem; font-weight: 900; font-family: var(--font);
+      box-shadow: 0 6px 0 #a03010, 0 10px 30px rgba(233,84,32,.5), inset 0 2px 8px rgba(255,255,255,.25);
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      transition: transform .1s, box-shadow .1s;
+    }
+    #buzz-btn:active:not(:disabled) { transform: translateY(4px) scale(.97); box-shadow: 0 2px 0 #a03010, 0 4px 15px rgba(233,84,32,.4); }
+    #buzz-btn:disabled { background: radial-gradient(circle at 38% 32%, #555, #333); box-shadow: 0 4px 0 #222; cursor: not-allowed; }
+    #buzz-status { font-size: 1.05rem; font-weight: 700; text-align: center; color: #556; padding: 0 2rem; min-height: 1.5rem; }
+    #buzz-status.winner { color: #ffd166; font-size: 1.15rem; }
+    #buzz-status.locked { color: #445; }
+
+    /* ── End screen ── */
+    #end-screen { justify-content: center; align-items: center; text-align: center; gap: 1.5rem; }
+    #end-screen h2 { font-size: 2rem; font-weight: 800; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: #fff; padding: .6rem 1.2rem;
+      border-radius: 999px; font-weight: 600; font-size: .88rem; z-index: 9999;
+      transition: opacity .25s; white-space: nowrap;
+    }
+    #toast.hidden { opacity: 0; pointer-events: none; }
+    #toast.error  { background: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Join -->
+  <div id="join-screen" class="screen">
+    <div class="app-title">Quizz<span>Game</span></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:.9rem">
+      <div class="field">
+        <label>Code de session</label>
+        <input id="code-input" type="text" maxlength="4" placeholder="ABCD" autocomplete="off"
+               style="text-transform:uppercase;font-size:1.8rem;letter-spacing:.25em;text-align:center;font-family:monospace;font-weight:900">
+      </div>
+      <div class="field">
+        <label>Votre pseudo</label>
+        <input id="name-input" type="text" maxlength="20" placeholder="ex : Sophie">
+      </div>
+      <button class="btn btn-primary" onclick="joinSession()">Rejoindre →</button>
+    </div>
+  </div>
+
+  <!-- 2. Lobby -->
+  <div id="lobby-screen" class="screen hidden">
+    <div class="lobby-name" id="lobby-name"></div>
+    <div style="color:var(--muted);font-size:.85rem">Code session</div>
+    <div class="lobby-code" id="lobby-code"></div>
+    <div class="waiting-anim">En attente du début de la partie…</div>
+  </div>
+
+  <!-- 3. Waiting -->
+  <div id="waiting-screen" class="screen hidden">
+    <div class="waiting-anim" style="margin-top:2rem">En attente de la prochaine question…</div>
+  </div>
+
+  <!-- 4. Mode selection -->
+  <div id="mode-screen" class="screen hidden">
+    <div class="q-card">
+      <div class="q-badge">Question</div>
+      <div class="q-text" id="mode-question-text"></div>
+    </div>
+    <div class="mode-hint">Choisissez votre niveau de risque :</div>
+    <div class="mode-cards">
+      <button class="mode-card duo"   onclick="chooseMode('duo')">
+        <div class="mode-icon">2️⃣</div>
+        <div class="mode-info">
+          <div class="mode-name">Duo</div>
+          <div class="mode-desc">2 propositions — plus facile</div>
+        </div>
+        <div class="mode-pts">2 pts</div>
+      </button>
+      <button class="mode-card carre" onclick="chooseMode('carre')">
+        <div class="mode-icon">4️⃣</div>
+        <div class="mode-info">
+          <div class="mode-name">Carré</div>
+          <div class="mode-desc">4 propositions — classique</div>
+        </div>
+        <div class="mode-pts">3 pts</div>
+      </button>
+      <button class="mode-card cash"  onclick="chooseMode('cash')">
+        <div class="mode-icon">💰</div>
+        <div class="mode-info">
+          <div class="mode-name">Cash</div>
+          <div class="mode-desc">Réponse libre — risqué !</div>
+        </div>
+        <div class="mode-pts">5 pts</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5. Vote (duo/carré) -->
+  <div id="vote-screen" class="screen hidden">
+    <div class="q-card">
+      <div class="q-badge">Question</div>
+      <div class="q-text" id="vote-question-text"></div>
+    </div>
+    <div class="vote-mode-bar">
+      <span class="vote-mode-badge" id="vote-mode-badge">Carré</span>
+      <span style="color:var(--muted)">Choisissez votre réponse</span>
+    </div>
+    <div class="choices-list" id="choices-list"></div>
+    <div class="voted-msg hidden" id="voted-msg">Réponse envoyée ✓</div>
+  </div>
+
+  <!-- 6. Cash -->
+  <div id="cash-screen" class="screen hidden">
+    <div class="q-card">
+      <div class="q-badge">Cash — 5 pts</div>
+      <div class="q-text" id="cash-question-text"></div>
+    </div>
+    <input id="cash-input" type="text" placeholder="Votre réponse…" autocomplete="off">
+    <button class="btn btn-primary" id="cash-send-btn" onclick="submitCash()">Envoyer</button>
+    <div class="hidden" id="cash-sent" style="text-align:center;color:var(--green);font-weight:700">Réponse envoyée ✓</div>
+  </div>
+
+  <!-- 7. Buzzer -->
+  <div id="buzzer-screen" class="hidden">
+    <div id="buzz-question"></div>
+    <div class="buzz-ring-wrap">
+      <div class="buzz-ring" id="buzz-ring"></div>
+      <button id="buzz-btn" onclick="doBuzz()">BUZZ</button>
+    </div>
+    <div id="buzz-status"></div>
+  </div>
+
+  <!-- 8. End -->
+  <div id="end-screen" class="screen hidden">
+    <h2>Partie terminée !</h2>
+    <p style="color:var(--muted)">Merci d'avoir joué.</p>
+    <button class="btn btn-primary" style="margin-top:.5rem" onclick="location.reload()">Rejouer</button>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/play/play.js"></script>
+</body>
+</html>

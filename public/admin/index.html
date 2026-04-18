@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizzGame — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0f2f8; --surface: #fff; --surface2: #f5f7fc; --border: #e2e6f0;
+      --text: #1a1a2e; --muted: #8a90a8; --accent: #e94560; --accent2: #0f3460;
+      --green: #06b489; --yellow: #f5a623; --red: #e94560;
+      --ca: #3a80c8; --cb: #1e9970; --cc: #c97820; --cd: #b03c80;
+      --radius: 10px; --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; display: flex; flex-direction: column; }
+    .hidden { display: none !important; }
+
+    /* Header */
+    header {
+      background: var(--surface); border-bottom: 1.5px solid var(--border);
+      padding: .6rem 1.25rem; display: flex; align-items: center; gap: .75rem; flex-shrink: 0;
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+    .status-dot.on { background: var(--green); }
+    .header-title { font-size: 1.05rem; font-weight: 800; }
+    .header-title span { color: var(--accent); }
+    .header-code {
+      font-family: monospace; font-size: 1.4rem; font-weight: 900; letter-spacing: .18em;
+      color: var(--accent2); background: var(--surface2); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: .15rem .65rem;
+    }
+    .header-join { display: flex; gap: .35rem; align-items: center; }
+    .header-join input {
+      width: 68px; font-family: monospace; font-size: 1rem; font-weight: 900;
+      letter-spacing: .12em; text-align: center; text-transform: uppercase;
+      padding: .35rem .4rem; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--surface2); color: var(--text);
+    }
+    .header-join input:focus { outline: none; border-color: var(--accent); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--border); background: var(--surface); flex-shrink: 0; }
+    .tab-btn {
+      padding: .65rem 1.5rem; border: none; background: none; font-family: var(--font);
+      font-size: .88rem; font-weight: 700; color: var(--muted); cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -1.5px; transition: color .15s, border-color .15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+      padding: .55rem 1rem; border: none; border-radius: var(--radius);
+      font-size: .85rem; font-weight: 700; cursor: pointer; font-family: var(--font);
+      transition: filter .12s, transform .08s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-secondary{ background: var(--accent2); color: #fff; }
+    .btn-green    { background: var(--green);   color: #fff; }
+    .btn-yellow   { background: var(--yellow);  color: #fff; }
+    .btn-ghost    { background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); }
+    .btn-outline  { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+    .btn:hover:not(:disabled) { filter: brightness(1.08); }
+
+    /* Layout shared */
+    .tab-content { flex: 1; overflow: hidden; display: flex; }
+    .col { display: flex; flex-direction: column; overflow-y: auto; }
+    .section { padding: .9rem 1.1rem; border-bottom: 1px solid var(--border); }
+    .section-label { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .55rem; }
+
+    /* ── TAB 1: Questions ── */
+    #tab-questions { display: flex; }
+    #tab-questions .col-main { flex: 1; border-right: 1.5px solid var(--border); }
+    #tab-questions .col-side  { width: 300px; }
+
+    textarea, input[type="text"] {
+      width: 100%; background: var(--surface2); color: var(--text);
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: .6rem .8rem; font-size: .88rem; font-family: var(--font); resize: vertical;
+    }
+    textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    .field-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .25rem; display: block; }
+
+    .mode-pills { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .mode-pill {
+      padding: .3rem .85rem; border-radius: 999px; border: 1.5px solid var(--border);
+      background: var(--surface); color: var(--muted); font-size: .8rem; font-weight: 700;
+      cursor: pointer; font-family: var(--font); transition: all .12s;
+    }
+    .mode-pill:hover { border-color: var(--accent2); color: var(--accent2); }
+    .mode-pill.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+    .choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+    .choice-row { display: flex; gap: .35rem; align-items: center; }
+    .choice-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--green); flex-shrink: 0; }
+    .choice-row input[type="text"] { flex: 1; padding: .4rem .65rem; font-size: .83rem; }
+
+    .q-list { display: flex; flex-direction: column; gap: .3rem; }
+    .q-item {
+      display: flex; align-items: center; gap: .55rem; padding: .55rem .7rem;
+      background: var(--surface); border-radius: 8px; cursor: pointer;
+      border: 1.5px solid transparent; transition: all .12s;
+    }
+    .q-item:hover { background: #eef0f8; }
+    .q-item.active { border-color: var(--accent); background: #fff5f7; }
+    .q-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--ca); }
+    .q-dot.buzzer { background: var(--cd); }
+    .q-text { flex: 1; font-size: .83rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .q-num { font-size: .7rem; color: var(--muted); flex-shrink: 0; }
+    .q-edit-btn {
+      flex-shrink: 0; padding: .2rem .5rem; border: 1.5px solid var(--border);
+      border-radius: 6px; background: var(--surface); color: var(--muted);
+      font-size: .7rem; font-weight: 700; cursor: pointer; font-family: var(--font);
+      transition: all .12s; line-height: 1;
+    }
+    .q-edit-btn:hover { border-color: var(--accent2); color: var(--accent2); background: #eef0f8; }
+
+    .edit-mode-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #eef2ff; border: 1.5px solid var(--accent2);
+      border-radius: 8px; padding: .45rem .75rem; font-size: .8rem;
+      font-weight: 700; color: var(--accent2);
+    }
+
+    /* ── TAB 2: En cours ── */
+    #tab-game { display: flex; }
+    #tab-game .col-main  { flex: 1; border-right: 1.5px solid var(--border); }
+    #tab-game .col-side  { width: 280px; }
+
+    /* Current question card */
+    .current-q-card {
+      background: var(--surface2); border-radius: 8px; border: 1.5px solid var(--border);
+      padding: .75rem 1rem;
+    }
+    .current-q-mode { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .25rem; }
+    .current-q-text { font-size: .95rem; font-weight: 600; line-height: 1.4; }
+    .admin-answer-hint {
+      margin-top: .55rem; padding: .4rem .6rem; border-radius: 7px;
+      background: #dcf5ec; border: 1.5px solid var(--green);
+      font-size: .78rem; font-weight: 700; color: #0a7a55;
+      display: flex; flex-direction: column; gap: .2rem;
+    }
+    .admin-answer-hint-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .1em; opacity: .6; }
+    .admin-answer-chips { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .15rem; }
+    .admin-answer-chip {
+      display: inline-flex; align-items: center; gap: .3rem;
+      background: var(--green); color: #fff; border-radius: 5px;
+      padding: .15rem .5rem; font-size: .75rem; font-weight: 800;
+    }
+
+    /* Action buttons row */
+    .action-btns { display: flex; flex-direction: column; gap: .45rem; }
+    .action-row  { display: flex; gap: .4rem; }
+    .action-row .btn { flex: 1; font-size: .8rem; }
+
+    /* Vote bars */
+    .vote-summary { font-size: .8rem; color: var(--muted); margin-bottom: .4rem; }
+    .vote-summary strong { color: var(--text); }
+    .vote-bars { display: flex; flex-direction: column; gap: .4rem; }
+    .vote-row { display: flex; align-items: center; gap: .5rem; }
+    .vote-letter {
+      width: 1.5rem; height: 1.5rem; border-radius: 5px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 900; color: #fff;
+    }
+    .vote-letter.ca{background:var(--ca)} .vote-letter.cb{background:var(--cb)}
+    .vote-letter.cc{background:var(--cc)} .vote-letter.cd{background:var(--cd)}
+    .vbar-wrap { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .vbar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+    .vbar-fill.ca{background:var(--ca)} .vbar-fill.cb{background:var(--cb)}
+    .vbar-fill.cc{background:var(--cc)} .vbar-fill.cd{background:var(--cd)}
+    .vbar-count { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 1.4rem; text-align: right; }
+
+    /* Buzzer winner */
+    #buzzer-winner-card {
+      background: linear-gradient(135deg, var(--accent2), #6a0572);
+      border-radius: var(--radius); padding: .8rem 1rem; text-align: center;
+    }
+    #buzzer-winner-card .bw-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.5); }
+    #buzzer-winner-name { font-size: 1.6rem; font-weight: 900; color: #ffd166; }
+
+    /* Cash answers */
+    .cash-answers { display: flex; flex-direction: column; gap: .35rem; }
+    .cash-row {
+      display: flex; align-items: center; gap: .5rem; padding: .5rem .7rem;
+      background: var(--surface); border-radius: 8px; border: 1.5px solid var(--border);
+      animation: fadeIn .2s ease;
+    }
+    .cash-row.validated   { border-color: var(--green); background: #f0fdf8; }
+    .cash-row.invalidated { opacity: .4; }
+    .cash-player { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 55px; flex-shrink: 0; }
+    .cash-text   { flex: 1; font-size: .85rem; font-weight: 600; }
+    .cash-btns   { display: flex; gap: .25rem; }
+    .cash-btns .btn { padding: .28rem .55rem; font-size: .72rem; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Players */
+    .player-list { display: flex; flex-direction: column; gap: .3rem; }
+    .player-row {
+      display: flex; align-items: center; gap: .55rem; padding: .5rem .7rem;
+      background: var(--surface); border-radius: 8px; border: 1.5px solid var(--border);
+    }
+    .player-rank  { font-size: .72rem; color: var(--muted); min-width: 1.2rem; text-align: center; }
+    .player-name  { flex: 1; font-size: .85rem; font-weight: 600; }
+    .player-score { font-size: .95rem; font-weight: 800; color: var(--accent2); min-width: 2rem; text-align: right; }
+    .score-btns button {
+      width: 24px; height: 24px; border: none; border-radius: 5px; cursor: pointer;
+      font-weight: 800; font-size: .8rem; font-family: var(--font); margin-left: .15rem;
+    }
+    .score-btns .plus  { background: #dcf5ec; color: var(--green); }
+    .score-btns .minus { background: #fde8ec; color: var(--red); }
+
+    /* Answer rows */
+    .answer-row {
+      display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem;
+      background: var(--surface); border-radius: 8px; border: 1.5px solid var(--border);
+      animation: fadeIn .2s ease;
+    }
+    .answer-row.correct { border-color: var(--green); background: #f0fdf8; }
+    .answer-row.wrong   { border-color: #fde8ec; background: #fffafb; opacity: .75; }
+    .ar-name  { font-size: .8rem; font-weight: 700; min-width: 65px; flex-shrink: 0; }
+    .ar-mode  { font-size: .68rem; font-weight: 800; padding: .15rem .45rem; border-radius: 999px; color: #fff; flex-shrink: 0; }
+    .ar-mode.duo   { background: var(--ca); }
+    .ar-mode.carre { background: var(--cb); }
+    .ar-mode.cash  { background: var(--cc); }
+    .ar-answer { flex: 1; font-size: .85rem; font-weight: 500; color: var(--text); }
+    .ar-result { font-size: .9rem; flex-shrink: 0; }
+
+    /* Correct answer banner */
+    .correct-choice-chip {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: #dcf5ec; border: 1.5px solid var(--green);
+      border-radius: 8px; padding: .4rem .75rem;
+      font-size: .9rem; font-weight: 700; color: #0a7a55;
+    }
+    .correct-choice-chip .chip-letter {
+      width: 1.5rem; height: 1.5rem; border-radius: 5px; background: var(--green);
+      color: #fff; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 900;
+    }
+
+    #toast {
+      position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: #fff; padding: .6rem 1.2rem;
+      border-radius: 999px; font-weight: 600; font-size: .85rem; z-index: 9999;
+      transition: opacity .25s; white-space: nowrap;
+    }
+    #toast.hidden { opacity: 0; pointer-events: none; }
+    #toast.error  { background: var(--accent); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="status-dot" id="dot"></div>
+  <div class="header-title">Quizz<span>Game</span> <span style="color:var(--muted);font-weight:400;font-size:.85rem">Admin</span></div>
+  <div style="flex:1"></div>
+  <span style="font-size:.72rem;font-weight:700;color:var(--muted)">SESSION</span>
+  <div class="header-code" id="session-code">——</div>
+  <div class="header-join">
+    <input id="join-code-input" type="text" maxlength="4" placeholder="CODE">
+    <button class="btn btn-ghost" style="font-size:.8rem" onclick="joinExisting()">Rejoindre</button>
+    <button class="btn btn-outline" style="font-size:.8rem" onclick="newSession()">+ Nouvelle</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="switchTab('questions')">Questions</button>
+  <button class="tab-btn"        onclick="switchTab('game')">▶ En cours</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1 — Questions
+════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-questions">
+
+  <!-- Colonne principale -->
+  <div class="col col-main">
+
+    <!-- Création -->
+    <div class="section">
+      <div class="section-label" id="form-section-label">Nouvelle question</div>
+      <div style="display:flex;flex-direction:column;gap:.6rem">
+        <!-- Bandeau mode édition -->
+        <div class="edit-mode-banner hidden" id="edit-mode-banner">
+          <span id="edit-mode-label">✏️ Édition</span>
+          <button class="btn btn-ghost" style="font-size:.75rem;padding:.25rem .6rem" onclick="cancelEdit()">Annuler</button>
+        </div>
+        <div>
+          <span class="field-label">Type</span>
+          <div class="mode-pills">
+            <button class="mode-pill active" data-mode="normal">Normal (Duo/Carré/Cash)</button>
+            <button class="mode-pill" data-mode="buzzer">Buzzer</button>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Question</span>
+          <textarea id="q-text" rows="2" placeholder="Texte de la question…"></textarea>
+        </div>
+        <div id="choices-section">
+          <span class="field-label">4 Propositions <span style="font-size:.65rem">(cocher = correcte)</span></span>
+          <div class="choices-grid" id="choices-grid"></div>
+        </div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn btn-secondary" id="save-btn" style="flex:1" onclick="saveQuestion()">Enregistrer la question</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liste -->
+    <div class="section" style="flex:1">
+      <div class="section-label">Questions <span id="q-count" style="color:var(--accent);font-weight:900">0</span></div>
+      <div class="q-list" id="q-list">
+        <div style="color:var(--muted);font-size:.83rem">Créez votre première question ci-dessus.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne droite -->
+  <div class="col col-side">
+    <div class="section" style="flex:1">
+      <div class="section-label">Joueurs <span id="player-count-q" style="color:var(--accent2);font-weight:900">0</span></div>
+      <div class="player-list" id="player-list-q">
+        <div style="color:var(--muted);font-size:.83rem">En attente…</div>
+      </div>
+    </div>
+    <div class="section" style="display:flex;flex-direction:column;gap:.4rem">
+      <button class="btn btn-ghost" style="width:100%;font-size:.8rem" onclick="duplicateSession()">📋 Dupliquer vers nouvelle session</button>
+      <button class="btn btn-primary" style="width:100%" onclick="switchTab('game')">▶ Lancer la partie</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 2 — En cours
+════════════════════════════════════════════ -->
+<div class="tab-content hidden" id="tab-game">
+
+  <!-- ── Colonne gauche : contrôles ── -->
+  <div class="col col-main" style="width:340px;flex:none">
+
+    <!-- Question en cours -->
+    <div class="section">
+      <div class="section-label">Question en cours</div>
+      <div class="current-q-card" id="current-q-card">
+        <div class="current-q-mode" id="current-q-mode">—</div>
+        <div class="current-q-text" id="current-q-text">Sélectionnez une question.</div>
+        <div class="admin-answer-hint hidden" id="admin-answer-hint">
+          <span class="admin-answer-hint-label">🔑 Bonne réponse (admin)</span>
+          <div class="admin-answer-chips" id="admin-answer-chips"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation questions -->
+    <div class="section" style="flex:1;overflow-y:auto">
+      <div class="section-label">Questions</div>
+      <div class="q-list" id="q-list-game"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="section">
+      <div class="section-label">Actions</div>
+      <div class="action-btns">
+        <div class="action-row">
+          <button class="btn btn-primary" id="btn-show"   onclick="showQuestion()" disabled>▶ Afficher</button>
+          <button class="btn btn-yellow"  id="btn-next"   onclick="nextQuestion()" disabled>Suivante →</button>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-green"   id="btn-answer" onclick="revealAnswer()" disabled>✓ Révéler la réponse</button>
+        </div>
+        <!-- Buzzer winner -->
+        <div id="buzzer-winner-card" class="hidden">
+          <div class="bw-label">Buzzer winner</div>
+          <div id="buzzer-winner-name">—</div>
+          <button class="btn btn-ghost" style="width:100%;margin-top:.4rem;font-size:.78rem;color:#fff;border-color:rgba(255,255,255,.2)" onclick="resetBuzzer()">Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Votes -->
+    <div class="section">
+      <div class="vote-summary">
+        <strong id="vote-count">0</strong> / <span id="vote-total-label">0</span> réponses reçues
+      </div>
+      <div class="vote-bars hidden" id="vote-bars-detail" style="margin-top:.5rem"></div>
+      <div id="vote-bar-generic" style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:.5rem">
+        <div id="votes-fill-generic" style="height:100%;background:var(--accent);border-radius:4px;transition:width .3s;width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Classement -->
+    <div class="section" style="flex:1;overflow-y:auto">
+      <div class="section-label">Classement <span id="player-count-g" style="color:var(--accent2);font-weight:900">0</span></div>
+      <div class="player-list" id="player-list-g">
+        <div style="color:var(--muted);font-size:.83rem">En attente…</div>
+      </div>
+    </div>
+
+    <div class="section" style="display:flex;flex-direction:column;gap:.4rem">
+      <button class="btn btn-ghost" style="width:100%;font-size:.8rem" onclick="resetGame()">🔄 Réinitialiser la partie</button>
+      <button class="btn btn-outline" style="width:100%;font-size:.8rem" onclick="endSession()">Terminer la session</button>
+    </div>
+  </div>
+
+  <!-- ── Colonne droite : réponses ── -->
+  <div class="col" style="flex:1;border-left:1.5px solid var(--border)">
+
+    <!-- Bonne réponse (après révélation) -->
+    <div class="section hidden" id="correct-answer-banner">
+      <div class="section-label">Bonne réponse</div>
+      <div id="correct-answer-display" style="display:flex;gap:.5rem;flex-wrap:wrap"></div>
+    </div>
+
+    <!-- Validation Cash — en haut pour toujours être visible -->
+    <div class="section hidden" id="cash-answers-section">
+      <div class="section-label">Validation Cash <span style="color:var(--yellow);font-weight:800">+5 pts</span></div>
+      <div class="cash-answers" id="cash-answers-list" style="max-height:220px;overflow-y:auto"></div>
+    </div>
+
+    <!-- Toutes les réponses des joueurs -->
+    <!-- min-height:0 est indispensable : sans lui flex:1 + overflow-y:auto empêche le shrink
+         et repousse cash hors du viewport -->
+    <div class="section" style="flex:1;min-height:0;overflow-y:auto">
+      <div class="section-label" style="display:flex;align-items:center;gap:.5rem">
+        Réponses des participants
+        <span id="answers-count" style="color:var(--accent);font-weight:900;font-size:.8rem">0</span>
+      </div>
+      <div id="all-answers-list" style="display:flex;flex-direction:column;gap:.35rem;margin-top:.25rem">
+        <div data-placeholder style="color:var(--muted);font-size:.83rem">En attente des réponses…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="hidden"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>
