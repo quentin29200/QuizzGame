@@ -1,0 +1,205 @@
+{
+  "title": "Quiz Mariage",
+  "questions": [
+    {
+      "text": "Comment s'appelait le premier animal de compagnie de la mariée/marié ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Caramel",          "isCorrect": false },
+        { "label": "Noisette",         "isCorrect": false },
+        { "label": "Rocky",            "isCorrect": true  },
+        { "label": "Ils n'en ont pas eu", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Dans quelle ville se sont-ils rencontrés pour la première fois ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Paris",               "isCorrect": false },
+        { "label": "Lyon",                "isCorrect": false },
+        { "label": "À l'étranger",        "isCorrect": false },
+        { "label": "Dans leur ville natale", "isCorrect": true  }
+      ]
+    },
+    {
+      "text": "Qui des deux a dit \"je t'aime\" en premier ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "La mariée",        "isCorrect": true  },
+        { "label": "Le marié",         "isCorrect": false },
+        { "label": "En même temps",    "isCorrect": false },
+        { "label": "Aucun, c'est implicite", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le plat préféré du futur marié ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Pizza",  "isCorrect": false },
+        { "label": "Pâtes",  "isCorrect": false },
+        { "label": "Burger", "isCorrect": false },
+        { "label": "Tajine", "isCorrect": true  }
+      ]
+    },
+    {
+      "text": "Combien de temps après leur rencontre ont-ils officialisé leur relation ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Moins d'un mois", "isCorrect": false },
+        { "label": "1 à 3 mois",      "isCorrect": true  },
+        { "label": "3 à 6 mois",      "isCorrect": false },
+        { "label": "Plus de 6 mois",  "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle est la destination de rêve de la future mariée ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Maldives",  "isCorrect": false },
+        { "label": "Japon",     "isCorrect": true  },
+        { "label": "New York",  "isCorrect": false },
+        { "label": "Italie",    "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel surnom donne-t-il/elle à son partenaire en privé ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Mon amour",                    "isCorrect": false },
+        { "label": "Chéri(e)",                     "isCorrect": false },
+        { "label": "Un surnom bizarre et honteux", "isCorrect": true  },
+        { "label": "Il/elle l'appelle par son prénom", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Qui cuisine le mieux à la maison ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "La mariée",                         "isCorrect": true  },
+        { "label": "Le marié",                          "isCorrect": false },
+        { "label": "Les deux pareil",                   "isCorrect": false },
+        { "label": "Ubereats cuisine mieux que les deux", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Où aura lieu leur lune de miel ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Europe",          "isCorrect": false },
+        { "label": "Asie",            "isCorrect": false },
+        { "label": "Caraïbes",        "isCorrect": true  },
+        { "label": "C'est encore secret", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le plus grand défaut de la mariée selon son partenaire ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Elle est trop bavarde",               "isCorrect": false },
+        { "label": "Elle est en retard partout",          "isCorrect": true  },
+        { "label": "Elle passe trop de temps à se préparer", "isCorrect": false },
+        { "label": "Elle monopolise la télécommande",     "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Qui prend le plus de place dans le lit ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "La mariée",                             "isCorrect": false },
+        { "label": "Le marié",                              "isCorrect": false },
+        { "label": "Les deux occupent leur côté",           "isCorrect": false },
+        { "label": "Le chien/chat s'en occupe à leur place", "isCorrect": true  }
+      ]
+    },
+    {
+      "text": "Quel est le plus grand défaut du marié selon sa partenaire ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Il ne range rien",                  "isCorrect": true  },
+        { "label": "Il regarde trop le sport",          "isCorrect": false },
+        { "label": "Il ronfle",                         "isCorrect": false },
+        { "label": "Il passe trop de temps sur son téléphone", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Comment s'est passé leur premier rendez-vous ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Un restaurant",           "isCorrect": true  },
+        { "label": "Un bar",                  "isCorrect": false },
+        { "label": "Chez l'un d'eux",         "isCorrect": false },
+        { "label": "Un événement entre amis", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Qui dépense le plus facilement l'argent ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "La mariée",         "isCorrect": false },
+        { "label": "Le marié",          "isCorrect": false },
+        { "label": "Les deux pareil",   "isCorrect": true  },
+        { "label": "Personne, ils sont radins", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle a été la réaction du marié quand il a vu la mariée en robe pour la première fois ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Il a pleuré",                            "isCorrect": false },
+        { "label": "Il est resté bouche bée",                "isCorrect": true  },
+        { "label": "Il a fait un compliment maladroit",      "isCorrect": false },
+        { "label": "Il a regardé son téléphone 2 secondes avant", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le fantasme de voyage qu'ils n'ont jamais osé faire ensemble ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Un road trip sauvage sans itinéraire",      "isCorrect": true  },
+        { "label": "Un séjour dans un hôtel de luxe extravagant", "isCorrect": false },
+        { "label": "Une aventure dans la jungle",               "isCorrect": false },
+        { "label": "Un voyage en solo pour se retrouver",       "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Qui des deux a le plus de chance de danser sur la table lors de la soirée de mariage ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "La mariée",                   "isCorrect": true  },
+        { "label": "Le marié",                    "isCorrect": false },
+        { "label": "Les deux en même temps",      "isCorrect": false },
+        { "label": "Ni l'un ni l'autre, ils sont trop sages", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le désaccord le plus fréquent dans leur couple ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "La température dans la chambre", "isCorrect": false },
+        { "label": "Les sorties et les amis",         "isCorrect": false },
+        { "label": "Les dépenses",                    "isCorrect": false },
+        { "label": "Où passer les fêtes de famille",  "isCorrect": true  }
+      ]
+    },
+    {
+      "text": "Si le couple était un film, ce serait lequel ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Coup de foudre à Notting Hill", "isCorrect": false },
+        { "label": "La Guerre des Rose",            "isCorrect": false },
+        { "label": "Titanic",                       "isCorrect": false },
+        { "label": "The Notebook",                  "isCorrect": true  }
+      ]
+    },
+    {
+      "text": "Quelle serait la réaction du/de la futur(e) si son/sa partenaire oubliait l'anniversaire de mariage ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Crise diplomatique majeure",        "isCorrect": false },
+        { "label": "Bouderie de 48h minimum",           "isCorrect": true  },
+        { "label": "Il/elle l'aurait mis sur agenda pour eux", "isCorrect": false },
+        { "label": "Total zen, c'est juste une date",   "isCorrect": false }
+      ]
+    }
+  ]
+}

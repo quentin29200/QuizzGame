@@ -1,0 +1,40 @@
+{
+  "title": "Culture Générale",
+  "questions": [
+    {
+      "text": "Quel est le pays le plus peuplé du monde ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Inde",         "isCorrect": true  },
+        { "label": "Chine",        "isCorrect": false },
+        { "label": "États-Unis",   "isCorrect": false },
+        { "label": "Indonésie",    "isCorrect": false }
+      ]
+    },
+    {
+      "text": "En quelle année l'homme a-t-il marché sur la Lune pour la première fois ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "1965", "isCorrect": false },
+        { "label": "1969", "isCorrect": true  },
+        { "label": "1972", "isCorrect": false },
+        { "label": "1961", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Combien d'os compte le corps humain adulte ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "187", "isCorrect": false },
+        { "label": "206", "isCorrect": true  },
+        { "label": "215", "isCorrect": false },
+        { "label": "230", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle est la capitale du Brésil ?",
+      "mode": "buzzer",
+      "answer": "Brasilia"
+    }
+  ]
+}

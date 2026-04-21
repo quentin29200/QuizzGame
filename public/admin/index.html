@@ -264,6 +264,9 @@
     <input id="join-code-input" type="text" maxlength="4" placeholder="CODE">
     <button class="btn btn-ghost" style="font-size:.8rem" onclick="joinExisting()">Rejoindre</button>
     <button class="btn btn-outline" style="font-size:.8rem" onclick="newSession()">+ Nouvelle</button>
+    <button class="btn btn-outline" style="font-size:.8rem" onclick="document.getElementById('json-import-input').click()">📂 Importer</button>
+    <button class="btn btn-outline" style="font-size:.8rem" onclick="duplicateSession()">📋 Dupliquer</button>
+    <input id="json-import-input" type="file" accept=".json" style="display:none" onchange="importFromJson(this)">
   </div>
 </header>
 
@@ -304,6 +307,10 @@
           <span class="field-label">4 Propositions <span style="font-size:.65rem">(cocher = correcte)</span></span>
           <div class="choices-grid" id="choices-grid"></div>
         </div>
+        <div id="buzzer-answer-section" class="hidden">
+          <span class="field-label">Réponse correcte <span style="font-size:.65rem">(affichée après validation)</span></span>
+          <input type="text" id="buzzer-answer" placeholder="Entrez la bonne réponse…">
+        </div>
         <div style="display:flex;gap:.4rem">
           <button class="btn btn-secondary" id="save-btn" style="flex:1" onclick="saveQuestion()">Enregistrer la question</button>
         </div>
@@ -328,8 +335,7 @@
       </div>
     </div>
     <div class="section" style="display:flex;flex-direction:column;gap:.4rem">
-      <button class="btn btn-ghost" style="width:100%;font-size:.8rem" onclick="duplicateSession()">📋 Dupliquer vers nouvelle session</button>
-      <button class="btn btn-primary" style="width:100%" onclick="switchTab('game')">▶ Lancer la partie</button>
+<button class="btn btn-primary" style="width:100%" onclick="switchTab('game')">▶ Lancer la partie</button>
     </div>
   </div>
 </div>
@@ -376,7 +382,10 @@
         <div id="buzzer-winner-card" class="hidden">
           <div class="bw-label">Buzzer winner</div>
           <div id="buzzer-winner-name">—</div>
-          <button class="btn btn-ghost" style="width:100%;margin-top:.4rem;font-size:.78rem;color:#fff;border-color:rgba(255,255,255,.2)" onclick="resetBuzzer()">Réinitialiser</button>
+          <div style="display:flex;gap:.35rem;margin-top:.4rem">
+            <button class="btn btn-green" style="flex:1;font-size:.78rem" onclick="validateBuzzer()">✓ +5pts</button>
+            <button class="btn btn-outline" style="flex:1;font-size:.78rem;color:#fff;border-color:rgba(255,255,255,.3)" onclick="invalidateBuzzer()">✗ Mauvaise</button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,0 +1,73 @@
+{
+  "title": "Quiz exemple — Géographie & Culture",
+  "questions": [
+    {
+      "text": "Quelle est la capitale de la France ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Paris",     "isCorrect": true  },
+        { "label": "Lyon",      "isCorrect": false },
+        { "label": "Marseille", "isCorrect": false },
+        { "label": "Bordeaux",  "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Combien de continents compte la Terre ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "5", "isCorrect": false },
+        { "label": "6", "isCorrect": false },
+        { "label": "7", "isCorrect": true  },
+        { "label": "8", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le plus long fleuve du monde ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "L'Amazone",  "isCorrect": false },
+        { "label": "Le Nil",     "isCorrect": true  },
+        { "label": "Le Yangtsé", "isCorrect": false },
+        { "label": "Le Mississippi", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Qui a peint la Joconde ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Dans quel pays se trouve le Machu Picchu ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Bolivie",  "isCorrect": false },
+        { "label": "Colombie", "isCorrect": false },
+        { "label": "Pérou",    "isCorrect": true  },
+        { "label": "Équateur", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle est la monnaie du Japon ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Yuan",    "isCorrect": false },
+        { "label": "Won",     "isCorrect": false },
+        { "label": "Yen",     "isCorrect": true  },
+        { "label": "Ringgit", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Citez la capitale de l'Australie.",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quel océan est le plus grand au monde ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Océan Atlantique", "isCorrect": false },
+        { "label": "Océan Indien",     "isCorrect": false },
+        { "label": "Océan Pacifique",  "isCorrect": true  },
+        { "label": "Océan Arctique",   "isCorrect": false }
+      ]
+    }
+  ]
+}

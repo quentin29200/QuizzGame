@@ -130,6 +130,30 @@ function replaceChoices(questionId, newChoices) {
   }
 }
 
+/**
+ * Importe un tableau de questions (avec leurs choices) dans une session existante.
+ * Retourne le nombre de questions insérées.
+ */
+function importQuestions(sessionId, questions) {
+  const db = getDb();
+  let position = db.prepare('SELECT COUNT(*) as c FROM questions WHERE session_id = ?').get(sessionId).c;
+
+  for (const q of questions) {
+    const mode = q.mode === 'buzzer' ? 'buzzer' : 'normal';
+    const qId = db.prepare(
+      'INSERT INTO questions (session_id, text, mode, position) VALUES (?, ?, ?, ?)'
+    ).run(sessionId, q.text, mode, position++).lastInsertRowid;
+
+    if (mode === 'normal' && Array.isArray(q.choices)) {
+      q.choices.forEach((c, i) => {
+        db.prepare('INSERT INTO choices (question_id, label, is_correct, position) VALUES (?, ?, ?, ?)')
+          .run(qId, c.label, c.isCorrect ? 1 : 0, i);
+      });
+    }
+  }
+  return questions.length;
+}
+
 // ── Answers ───────────────────────────────────────────────────────────────────
 
 function insertAnswer({ sessionId, questionId, playerId, choiceId, textAnswer, playerMode }) {
@@ -170,7 +194,7 @@ function setWinner(buzzId) {
 }
 
 module.exports = {
-  createSession, getSessionByCode, updateSessionState, generateCode,
+  createSession, getSessionByCode, updateSessionState, generateCode, importQuestions,
   upsertPlayer, getPlayersBySession, updatePlayerScore, resetPlayerScores,
   insertQuestion, insertChoice, getQuestionsBySession, getChoicesByQuestion,
   updateQuestion, replaceChoices, duplicateQuestions,

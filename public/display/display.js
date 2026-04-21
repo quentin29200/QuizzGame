@@ -31,9 +31,43 @@ socket.on('connect', () => { if (sessionCode) connectToSession(sessionCode); });
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
 function show(id) {
-  ['lobby', 'game-layout', 'buzzer-screen'].forEach(s =>
+  ['lobby', 'game-layout', 'buzzer-screen', 'final-screen'].forEach(s =>
     document.getElementById(s).classList.toggle('hidden', s !== id)
   );
+}
+
+function renderFinalLeaderboard(list) {
+  const podium = document.getElementById('final-podium');
+  const rest   = document.getElementById('final-rest');
+
+  const top3   = list.slice(0, 3);
+  const others = list.slice(3);
+
+  // Podium order: 2nd left, 1st center, 3rd right
+  const order  = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const medals = { 0: '🥇', 1: '🥈', 2: '🥉' };
+  const ranks  = [1, 0, 2]; // index in top3 for left, center, right
+
+  podium.innerHTML = order.map((p, i) => {
+    const rank  = list.indexOf(p);
+    const isFirst = rank === 0;
+    return `
+      <div class="podium-slot ${isFirst ? 'podium-first' : ''}">
+        <div class="podium-medal">${medals[rank] ?? ''}</div>
+        <div class="podium-name">${p.name}</div>
+        <div class="podium-score">${p.score} pts</div>
+        <div class="podium-bar podium-bar-${rank + 1}"></div>
+      </div>
+    `;
+  }).join('');
+
+  rest.innerHTML = others.map((p, i) => `
+    <div class="final-row">
+      <span class="final-rank">${i + 4}</span>
+      <span class="final-name">${p.name}</span>
+      <span class="final-score">${p.score} pts</span>
+    </div>
+  `).join('');
 }
 
 // ─── Question show ─────────────────────────────────────────────────────────────
@@ -46,6 +80,7 @@ socket.on('question:show', ({ text, mode, playerCount: pc }) => {
     document.getElementById('buzz-question-text').textContent = text;
     document.getElementById('buzz-label').textContent = 'Mode Buzzer';
     document.getElementById('winner-display').classList.add('hidden');
+    document.getElementById('buzzer-answer-reveal').classList.add('hidden');
     document.getElementById('buzz-waiting').classList.remove('hidden');
     show('buzzer-screen');
     return;
@@ -100,10 +135,20 @@ socket.on('buzzer:winner', ({ playerName }) => {
   w.classList.remove('hidden');
 });
 
+socket.on('buzzer:validated', ({ answer }) => {
+  document.getElementById('buzz-label').textContent = '✓ Bonne réponse !';
+  const el = document.getElementById('buzzer-answer-reveal');
+  if (answer) {
+    el.textContent = answer;
+    el.classList.remove('hidden');
+  }
+});
+
 socket.on('buzzer:reset', () => {
   document.getElementById('winner-display').classList.add('hidden');
   document.getElementById('buzz-label').textContent  = 'Mode Buzzer';
   document.getElementById('buzz-waiting').classList.remove('hidden');
+  document.getElementById('buzzer-answer-reveal').classList.add('hidden');
 });
 
 // ─── Players + leaderboard ─────────────────────────────────────────────────────
@@ -161,7 +206,7 @@ socket.on('game:reset', ({ players: list }) => {
 // ─── Session end ───────────────────────────────────────────────────────────────
 
 socket.on('session:end', () => {
-  show('lobby');
-  document.getElementById('display-code').textContent = '——';
+  renderFinalLeaderboard(players);
+  show('final-screen');
   localStorage.removeItem('displayCode');
 });

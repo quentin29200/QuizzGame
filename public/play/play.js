@@ -138,7 +138,10 @@ function submitVote(choiceId, btn) {
       b.disabled = true;
       if (b === btn) b.classList.add('selected');
     });
-    document.getElementById('voted-msg').classList.remove('hidden');
+    const msg = document.getElementById('voted-msg');
+    msg.textContent = 'Réponse envoyée ✓';
+    msg.style.color = '';
+    msg.classList.remove('hidden');
   });
 }
 

@@ -86,6 +86,7 @@ document.querySelectorAll('.mode-pill').forEach(btn => {
     btn.classList.add('active');
     selectedMode = btn.dataset.mode;
     document.getElementById('choices-section').classList.toggle('hidden', selectedMode === 'buzzer');
+    document.getElementById('buzzer-answer-section').classList.toggle('hidden', selectedMode !== 'buzzer');
   });
 });
 
@@ -126,22 +127,22 @@ function saveQuestion() {
   const text = document.getElementById('q-text').value.trim();
   if (!text) return toast('Texte de question requis', true);
   const choices = selectedMode === 'buzzer' ? [] : getChoices();
+  const answer  = selectedMode === 'buzzer' ? document.getElementById('buzzer-answer').value.trim() : undefined;
   if (selectedMode === 'normal' && choices.length < 2) return toast('Ajoutez au moins 2 propositions', true);
   if (selectedMode === 'normal' && !choices.some(c => c.isCorrect)) return toast('Cochez la bonne réponse', true);
 
   if (editingQuestionId) {
-    // Mode édition
-    socket.emit('admin:edit-question', { code: sessionCode, questionId: editingQuestionId, text, mode: selectedMode, choices }, (res) => {
+    socket.emit('admin:edit-question', { code: sessionCode, questionId: editingQuestionId, text, mode: selectedMode, choices, answer }, (res) => {
       if (res?.error) return toast(res.error, true);
       toast('Question mise à jour ✓');
       cancelEdit();
     });
   } else {
-    // Mode création
-    socket.emit('admin:create-question', { code: sessionCode, text, mode: selectedMode, choices }, (res) => {
+    socket.emit('admin:create-question', { code: sessionCode, text, mode: selectedMode, choices, answer }, (res) => {
       if (res?.error) return toast(res.error, true);
       toast('Question enregistrée ✓');
       document.getElementById('q-text').value = '';
+      document.getElementById('buzzer-answer').value = '';
       initChoicesGrid();
       socket.emit('admin:get-questions', { code: sessionCode });
     });
@@ -163,9 +164,13 @@ function editQuestion(id) {
     b.classList.toggle('active', b.dataset.mode === q.mode);
   });
   document.getElementById('choices-section').classList.toggle('hidden', q.mode === 'buzzer');
+  document.getElementById('buzzer-answer-section').classList.toggle('hidden', q.mode !== 'buzzer');
 
   // Remplir les choix
-  if (q.mode !== 'buzzer' && q.choices?.length) {
+  if (q.mode === 'buzzer') {
+    const buzzerAnswer = q.choices?.find(c => c.is_correct === 1 || c.is_correct === true);
+    document.getElementById('buzzer-answer').value = buzzerAnswer?.label || '';
+  } else if (q.choices?.length) {
     const grid = document.getElementById('choices-grid');
     grid.innerHTML = '';
     choiceCount = 0;
@@ -198,6 +203,8 @@ function cancelEdit() {
   selectedMode = 'normal';
   document.querySelectorAll('.mode-pill').forEach((b, i) => b.classList.toggle('active', i === 0));
   document.getElementById('choices-section').classList.remove('hidden');
+  document.getElementById('buzzer-answer-section').classList.add('hidden');
+  document.getElementById('buzzer-answer').value = '';
   initChoicesGrid();
 
   // Masquer le bandeau
@@ -317,9 +324,25 @@ function nextQuestion() {
   setTimeout(showQuestion, 50);
 }
 
-function resetBuzzer() {
-  socket.emit('buzzer:reset', { code: sessionCode });
-  document.getElementById('buzzer-winner-card').classList.add('hidden');
+let buzzerWinnerId = null;
+
+function validateBuzzer() {
+  if (!buzzerWinnerId) return;
+  socket.emit('admin:buzzer-result', { code: sessionCode, playerId: buzzerWinnerId, valid: true }, (res) => {
+    if (res?.error) return toast(res.error, true);
+    document.getElementById('buzzer-winner-card').classList.add('hidden');
+    buzzerWinnerId = null;
+  });
+}
+
+function invalidateBuzzer() {
+  if (!buzzerWinnerId) return;
+  socket.emit('admin:buzzer-result', { code: sessionCode, playerId: buzzerWinnerId, valid: false }, (res) => {
+    if (res?.error) return toast(res.error, true);
+    document.getElementById('buzzer-winner-card').classList.add('hidden');
+    buzzerWinnerId = null;
+    toast('Buzzer réinitialisé — à vos buzzers !');
+  });
 }
 
 function resetGame() {
@@ -328,6 +351,48 @@ function resetGame() {
     if (res?.error) return toast(res.error, true);
     toast('Partie réinitialisée ✓');
   });
+}
+
+async function importFromJson(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    return toast('Fichier JSON invalide', true);
+  }
+
+  if (!Array.isArray(data.questions) || !data.questions.length) {
+    return toast('JSON invalide : "questions" manquant ou vide', true);
+  }
+
+  const label = data.title ? `"${data.title}"` : file.name;
+  if (!confirm(`Importer ${data.questions.length} question(s) depuis ${label} dans une nouvelle session ?`)) return;
+
+  try {
+    const res = await fetch('/api/sessions/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions: data.questions }),
+    });
+    const result = await res.json();
+    if (!res.ok) return toast(result.error || 'Erreur import', true);
+
+    sessionCode = result.code;
+    document.getElementById('session-code').textContent = sessionCode;
+    localStorage.setItem('adminCode', sessionCode);
+
+    socket.emit('session:join', { code: sessionCode, role: 'admin' }, (joinRes) => {
+      if (joinRes?.error) return toast(joinRes.error, true);
+      socket.emit('admin:get-questions', { code: sessionCode });
+      toast(`✓ Session ${sessionCode} créée — ${result.questionCount} question(s) importée(s)`);
+    });
+  } catch {
+    toast('Erreur réseau lors de l\'import', true);
+  }
 }
 
 async function duplicateSession() {
@@ -578,7 +643,8 @@ function renderChoiceBars(choices) {
 
 // ─── Buzzer ───────────────────────────────────────────────────────────────────
 
-socket.on('buzzer:winner', ({ playerName }) => {
+socket.on('buzzer:winner', ({ playerName, playerId }) => {
+  buzzerWinnerId = playerId;
   document.getElementById('buzzer-winner-name').textContent = playerName;
   document.getElementById('buzzer-winner-card').classList.remove('hidden');
 });

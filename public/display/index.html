@@ -170,6 +170,58 @@
     }
     .buzz-waiting { color: #333; font-size: 1.1rem; animation: pulse 1.5s ease-in-out infinite; }
 
+    /* ══ FINAL SCREEN ══ */
+    #final-screen {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2.5rem 3rem 5rem; gap: 2rem; overflow: hidden;
+    }
+    .final-title {
+      font-size: clamp(1.6rem, 3.5vw, 2.8rem); font-weight: 900;
+      text-transform: uppercase; letter-spacing: .2em;
+      color: var(--gold); text-shadow: 0 0 40px rgba(255,209,102,.35);
+      animation: fadeUp .5s ease;
+    }
+    .final-podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 1.5rem; width: 100%; max-width: 860px;
+    }
+    .podium-slot {
+      display: flex; flex-direction: column; align-items: center; gap: .4rem;
+      animation: fadeUp .5s ease both;
+    }
+    .podium-slot:nth-child(1) { animation-delay: .1s; }
+    .podium-slot:nth-child(2) { animation-delay: 0s;  }
+    .podium-slot:nth-child(3) { animation-delay: .2s; }
+    .podium-medal { font-size: clamp(2rem, 4vw, 3rem); }
+    .podium-name  {
+      font-size: clamp(1.1rem, 2.5vw, 1.9rem); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+    }
+    .podium-score { font-size: clamp(.85rem, 1.6vw, 1.2rem); color: var(--gold); font-weight: 700; }
+    .podium-bar {
+      width: clamp(100px, 18vw, 200px); border-radius: 10px 10px 0 0;
+      background: rgba(255,255,255,.06);
+    }
+    .podium-bar-1 { height: 120px; background: rgba(255,209,102,.25); border: 2px solid var(--gold); }
+    .podium-bar-2 { height: 80px;  background: rgba(200,200,200,.12); border: 2px solid #aaa; }
+    .podium-bar-3 { height: 55px;  background: rgba(205,127,50,.18);  border: 2px solid #cd7f32; }
+    .podium-first .podium-name { color: var(--gold); }
+
+    .final-rest-list {
+      display: flex; flex-direction: column; gap: .4rem;
+      width: 100%; max-width: 500px;
+    }
+    .final-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .45rem .9rem; border-radius: 10px;
+      background: rgba(255,255,255,.04);
+      animation: fadeUp .4s ease both;
+    }
+    .final-rank  { font-size: .8rem; font-weight: 800; color: #555; min-width: 1.6rem; text-align: center; }
+    .final-name  { flex: 1; font-size: .95rem; font-weight: 600; }
+    .final-score { font-size: .95rem; font-weight: 800; color: var(--gold); }
+
     /* ══ PLAYERS BAR ══ */
     #players-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
@@ -231,6 +283,19 @@
     <div id="buzz-question-text"></div>
     <div id="winner-display" class="hidden"></div>
     <div class="buzz-waiting" id="buzz-waiting">Prêts ? À vos buzzers !</div>
+    <div id="buzzer-answer-reveal" class="hidden" style="
+      margin-top:1rem; padding:1rem 2rem; border-radius:14px;
+      background:rgba(6,180,137,.15); border:2px solid #06b489;
+      font-size:clamp(1.4rem,3vw,2.2rem); font-weight:800; color:#06b489;
+      animation:fadeUp .4s ease;
+    "></div>
+  </div>
+
+  <!-- ══ FINAL SCREEN ══ -->
+  <div id="final-screen" class="hidden">
+    <div class="final-title">Classement Final</div>
+    <div class="final-podium" id="final-podium"></div>
+    <div class="final-rest-list" id="final-rest"></div>
   </div>
 
   <!-- ══ PLAYERS BAR ══ -->

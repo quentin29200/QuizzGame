@@ -3,7 +3,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const { getDb } = require('./db/schema');
-const { createSession, getSessionByCode } = require('./db/queries');
+const { createSession, getSessionByCode, importQuestions } = require('./db/queries');
 const registerSocketHandlers = require('./socket/handlers');
 
 const PORT = process.env.PORT || 3000;
@@ -45,6 +45,31 @@ app.get('/api/sessions/:code', (req, res) => {
   const session = getSessionByCode(req.params.code.toUpperCase());
   if (!session) return res.status(404).json({ error: 'Session not found' });
   res.json(session);
+});
+
+app.post('/api/sessions/import', (req, res) => {
+  const { questions } = req.body;
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return res.status(400).json({ error: 'questions[] requis et non vide' });
+  }
+
+  for (const [i, q] of questions.entries()) {
+    if (!q.text?.trim()) return res.status(400).json({ error: `Question ${i + 1} : text manquant` });
+    const mode = q.mode === 'buzzer' ? 'buzzer' : 'normal';
+    if (mode === 'normal') {
+      if (!Array.isArray(q.choices) || q.choices.length < 2) {
+        return res.status(400).json({ error: `Question ${i + 1} : au moins 2 choix requis` });
+      }
+      if (!q.choices.some(c => c.isCorrect)) {
+        return res.status(400).json({ error: `Question ${i + 1} : aucune bonne réponse cochée` });
+      }
+    }
+  }
+
+  const code = generateCode();
+  const id = createSession(code);
+  const questionCount = importQuestions(id, questions);
+  res.json({ id, code, questionCount });
 });
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────

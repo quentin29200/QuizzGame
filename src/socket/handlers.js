@@ -83,12 +83,16 @@ module.exports = function registerSocketHandlers(io) {
 
     // ── Admin: questions ────────────────────────────────────────────────────
 
-    socket.on('admin:create-question', ({ code, text, mode, choices }, ack) => {
+    socket.on('admin:create-question', ({ code, text, mode, choices, answer }, ack) => {
       const session = getSessionByCode(code);
       if (!session) return ack?.({ error: 'Session introuvable' });
       const questions = getQuestionsBySession(session.id);
       const qId = insertQuestion(session.id, text, mode, questions.length);
-      (choices || []).forEach((c, i) => insertChoice(qId, c.label, c.isCorrect ?? false, i));
+      if (mode === 'buzzer') {
+        if (answer?.trim()) insertChoice(qId, answer.trim(), true, 0);
+      } else {
+        (choices || []).forEach((c, i) => insertChoice(qId, c.label, c.isCorrect ?? false, i));
+      }
       ack?.({ ok: true, questionId: qId });
     });
 
@@ -106,7 +110,9 @@ module.exports = function registerSocketHandlers(io) {
       if (!questionId) return ack?.({ error: 'questionId requis' });
 
       updateQuestion(questionId, text, mode);
-      if (mode !== 'buzzer') {
+      if (mode === 'buzzer') {
+        replaceChoices(questionId, answer?.trim() ? [{ label: answer.trim(), isCorrect: true }] : []);
+      } else {
         replaceChoices(questionId, choices || []);
       }
 
@@ -283,6 +289,24 @@ module.exports = function registerSocketHandlers(io) {
     socket.on('buzzer:reset', ({ code }) => {
       getState(code).buzzerLocked = false;
       io.to(code).emit('buzzer:reset');
+    });
+
+    socket.on('admin:buzzer-result', ({ code, playerId, valid }, ack) => {
+      const session = getSessionByCode(code);
+      if (!session) return ack?.({ error: 'Session introuvable' });
+
+      const state = getState(code);
+
+      if (valid) {
+        updatePlayerScore(playerId, 5);
+        const answer = state.currentChoices.find(c => c.is_correct === 1)?.label ?? null;
+        io.to(code).emit('players:update', getPlayersBySession(session.id));
+        io.to(code).emit('buzzer:validated', { answer });
+      } else {
+        state.buzzerLocked = false;
+        io.to(code).emit('buzzer:reset');
+      }
+      ack?.({ ok: true });
     });
 
     // ── Admin: score update ─────────────────────────────────────────────────
