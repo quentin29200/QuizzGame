@@ -13,6 +13,8 @@ let choiceCount        = 0;
 let currentChoices     = [];       // [{ id, label, is_correct }]
 let allAnswers         = [];       // answers received this question
 let answersRevealed    = false;
+let timerDuration      = 0;        // secondes, 0 = désactivé
+let timerInterval      = null;
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +71,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   }
   initChoicesGrid();
+  // Restaurer le timer sauvegardé
+  const savedTimer = parseInt(localStorage.getItem('timerDuration')) || 0;
+  timerDuration = savedTimer;
+  document.getElementById('timer-input').value = savedTimer;
 });
 
 socket.on('connect', () => {
@@ -291,11 +297,51 @@ function renderAdminAnswerHint() {
 
 // ─── Controls ─────────────────────────────────────────────────────────────────
 
+function saveTimerSetting() {
+  timerDuration = parseInt(document.getElementById('timer-input').value) || 0;
+  localStorage.setItem('timerDuration', timerDuration);
+}
+
+// ─── Timer admin ──────────────────────────────────────────────────────────────
+
+function startAdminTimer(duration, startedAt) {
+  clearInterval(timerInterval);
+  const wrap = document.getElementById('admin-timer');
+  const bar  = document.getElementById('admin-timer-bar');
+  const txt  = document.getElementById('admin-timer-text');
+  if (!duration) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+
+  const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+  let remaining = Math.max(0, duration - elapsed);
+
+  const update = () => {
+    const pct = Math.max(0, remaining / duration * 100);
+    bar.style.width = pct + '%';
+    const color = pct > 50 ? 'var(--green)' : pct > 25 ? 'var(--yellow)' : 'var(--red)';
+    bar.style.background = color;
+    txt.style.color = color;
+    txt.textContent = remaining + 's';
+  };
+  update();
+  if (remaining <= 0) return;
+  timerInterval = setInterval(() => {
+    remaining = Math.max(0, remaining - 1);
+    update();
+    if (remaining <= 0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function stopAdminTimer() {
+  clearInterval(timerInterval);
+  document.getElementById('admin-timer').classList.add('hidden');
+}
+
 function showQuestion() {
   if (!selectedQuestionId || !sessionCode) return;
   const q = questions.find(q => q.id === selectedQuestionId);
 
-  socket.emit('question:show', { code: sessionCode, questionId: selectedQuestionId });
+  socket.emit('question:show', { code: sessionCode, questionId: selectedQuestionId, timerDuration });
 
   document.getElementById('btn-answer').disabled = false;
   document.getElementById('buzzer-winner-card').classList.add('hidden');
@@ -308,11 +354,13 @@ function showQuestion() {
   if (hasChoices) renderChoiceBars(currentChoices);
 
   resetVoteDisplay();
+  startAdminTimer(timerDuration, Date.now());
   toast('Question affichée ▶');
 }
 
 function revealAnswer() {
   if (!sessionCode) return;
+  stopAdminTimer();
   socket.emit('question:reveal-answer', { code: sessionCode });
 }
 
@@ -447,6 +495,7 @@ socket.on('game:reset', ({ players }) => {
   answersRevealed    = false;
   allAnswers         = [];
   currentChoices     = [];
+  stopAdminTimer();
 
   document.getElementById('current-q-mode').textContent = '—';
   document.getElementById('current-q-text').textContent = 'Sélectionnez une question.';

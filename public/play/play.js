@@ -12,12 +12,130 @@ let currentText   = '';
 let hasAnswered   = false;
 let buzzerLocked  = false;
 let myChoiceId    = null;   // choiceId voted for this question
+let timerInterval = null;
 
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
 const SCREENS = ['join-screen','lobby-screen','waiting-screen','mode-screen','vote-screen','cash-screen','buzzer-screen','end-screen'];
 function show(id) {
   SCREENS.forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+  // Bouton quitter : visible sur tous les écrans sauf la saisie de code
+  document.getElementById('leave-btn').classList.toggle('hidden', id === 'join-screen');
+}
+
+// ─── Timer joueur ─────────────────────────────────────────────────────────────
+
+function startPlayTimer(duration, startedAt) {
+  console.log('[timer:play] startPlayTimer appelé', { duration, startedAt });
+  clearInterval(timerInterval);
+  const bar  = document.getElementById('play-timer-bar');
+  const fill = document.getElementById('play-timer-fill');
+  if (!duration) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+
+  const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+  let remaining = Math.max(0, duration - elapsed);
+
+  const update = () => {
+    const pct = Math.max(0, remaining / duration * 100);
+    fill.style.width = pct + '%';
+    fill.style.background = pct > 50 ? 'var(--green)' : pct > 25 ? '#f5a623' : 'var(--accent)';
+  };
+  update();
+  if (remaining <= 0) return;
+  timerInterval = setInterval(() => {
+    remaining = Math.max(0, remaining - 1);
+    update();
+    if (remaining <= 0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function stopPlayTimer() {
+  clearInterval(timerInterval);
+  document.getElementById('play-timer-bar').classList.add('hidden');
+}
+
+// ─── Quitter la session ────────────────────────────────────────────────────────
+
+function leaveSession() {
+  stopPlayTimer();
+  localStorage.removeItem('playerSession');
+  sessionCode  = null;
+  playerName   = null;
+  playerId     = null;
+  currentMode  = null;
+  playerMode   = null;
+  hasAnswered  = false;
+  buzzerLocked = false;
+  myChoiceId   = null;
+  currentText  = '';
+  show('join-screen');
+}
+
+// ─── Resynchronisation après reconnexion ──────────────────────────────────────
+
+function syncToGameState(gs) {
+  if (!gs) { show('lobby-screen'); return; }
+
+  if (gs.sessionState === 'ended') { show('end-screen'); return; }
+
+  if (!gs.question) { show('lobby-screen'); return; }
+
+  currentText  = gs.question.text;
+  currentMode  = gs.question.mode;
+  hasAnswered  = gs.hasAnswered || false;
+  playerMode   = gs.playerMode  || null;
+
+  // ── Buzzer ──
+  if (gs.question.mode === 'buzzer') {
+    document.getElementById('buzz-question').textContent = gs.question.text;
+    document.getElementById('buzz-status').textContent   = '';
+    document.getElementById('buzz-status').className     = '';
+    if (gs.buzzerLocked) {
+      buzzerLocked = true;
+      document.getElementById('buzz-btn').disabled = true;
+      document.getElementById('buzz-ring').style.animationPlayState = 'paused';
+      document.getElementById('buzz-status').textContent = 'Buzzer verrouillé';
+      document.getElementById('buzz-status').className   = 'locked';
+    } else {
+      buzzerLocked = false;
+      document.getElementById('buzz-btn').disabled = false;
+      document.getElementById('buzz-ring').style.animationPlayState = 'running';
+    }
+    show('buzzer-screen');
+    return;
+  }
+
+  // ── Normal ──
+  if (gs.hasAnswered) {
+    if (gs.playerMode === 'cash' && gs.sessionState === 'question') {
+      // A répondu en cash, en attente de validation admin
+      document.getElementById('cash-question-text').textContent = gs.question.text;
+      document.getElementById('cash-input').disabled = true;
+      document.getElementById('cash-send-btn').disabled = true;
+      const sent = document.getElementById('cash-sent');
+      sent.textContent = 'Réponse envoyée ✓';
+      sent.style.color = '';
+      sent.classList.remove('hidden');
+      show('cash-screen');
+    } else if (gs.playerMode === 'cash' && gs.sessionState === 'reveal') {
+      document.getElementById('cash-question-text').textContent = gs.question.text;
+      document.getElementById('cash-input').disabled = true;
+      document.getElementById('cash-send-btn').disabled = true;
+      const sent = document.getElementById('cash-sent');
+      sent.textContent = '⏳ En attente de validation par l\'admin…';
+      sent.style.color = '';
+      sent.classList.remove('hidden');
+      show('cash-screen');
+    } else {
+      // A déjà voté en duo/carré, attente de la prochaine question
+      show('waiting-screen');
+    }
+  } else {
+    // Pas encore répondu : afficher le choix de mode
+    document.getElementById('mode-question-text').textContent = gs.question.text;
+    show('mode-screen');
+  }
 }
 
 // ─── Join ──────────────────────────────────────────────────────────────────────
@@ -47,14 +165,20 @@ function joinSession() {
     localStorage.setItem('playerSession', JSON.stringify({ code, name }));
     document.getElementById('lobby-name').textContent = name;
     document.getElementById('lobby-code').textContent = code;
-    show('lobby-screen');
+    if (res.gameState) {
+      syncToGameState(res.gameState);
+    } else {
+      show('lobby-screen');
+    }
   });
 }
 
 socket.on('connect', () => {
   if (sessionCode && playerName) {
     socket.emit('session:join', { code: sessionCode, role: 'player', name: playerName }, (res) => {
-      if (res?.player) playerId = res.player.id;
+      if (!res?.player) return;
+      playerId = res.player.id;
+      if (res.gameState) syncToGameState(res.gameState);
     });
   }
 });
@@ -65,13 +189,16 @@ document.addEventListener('keydown', e => {
 
 // ─── Question show ─────────────────────────────────────────────────────────────
 
-socket.on('question:show', ({ text, mode }) => {
+socket.on('question:show', ({ text, mode, timerDuration, timerStartedAt }) => {
+  console.log('[play] question:show reçu', { mode, timerDuration, timerStartedAt });
   currentMode  = mode;
   playerMode   = null;
   hasAnswered  = false;
   buzzerLocked = false;
   currentText  = text;
   myChoiceId   = null;
+
+  startPlayTimer(timerDuration, timerStartedAt);
 
   if (mode === 'buzzer') {
     document.getElementById('buzz-question').textContent = text;
@@ -102,7 +229,10 @@ function chooseMode(mode) {
       document.getElementById('cash-input').value = '';
       document.getElementById('cash-input').disabled = false;
       document.getElementById('cash-send-btn').disabled = false;
-      document.getElementById('cash-sent').classList.add('hidden');
+      const sent = document.getElementById('cash-sent');
+      sent.textContent = '';
+      sent.style.color = '';
+      sent.classList.add('hidden');
       show('cash-screen');
       return;
     }
@@ -157,7 +287,10 @@ function submitCash() {
     hasAnswered = true;
     document.getElementById('cash-input').disabled = true;
     document.getElementById('cash-send-btn').disabled = true;
-    document.getElementById('cash-sent').classList.remove('hidden');
+    const sent = document.getElementById('cash-sent');
+    sent.textContent = 'Réponse envoyée ✓';
+    sent.style.color = '';
+    sent.classList.remove('hidden');
   });
 }
 
@@ -187,9 +320,13 @@ function lockBuzzer(msg) {
 // ─── Réponse révélée ──────────────────────────────────────────────────────────
 
 socket.on('question:answer-revealed', ({ correctChoiceIds, allChoices }) => {
+  stopPlayTimer();
   if (playerMode === 'cash') {
     // Cash: l'admin valide manuellement, juste afficher un message d'attente
-    document.getElementById('cash-sent').textContent = '⏳ En attente de validation par l\'admin…';
+    const sent = document.getElementById('cash-sent');
+    sent.textContent = '⏳ En attente de validation par l\'admin…';
+    sent.style.color = '';
+    sent.classList.remove('hidden');
     return;
   }
 
@@ -254,6 +391,7 @@ socket.on('cash:result', ({ valid }) => {
 
 socket.on('game:reset', () => {
   // Réinitialiser l'état local du joueur
+  stopPlayTimer();
   currentMode   = null;
   playerMode    = null;
   hasAnswered   = false;

@@ -358,6 +358,14 @@
           <span class="admin-answer-hint-label">🔑 Bonne réponse (admin)</span>
           <div class="admin-answer-chips" id="admin-answer-chips"></div>
         </div>
+        <!-- Timer bar -->
+        <div id="admin-timer" class="hidden" style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:.75rem">⏱</span>
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div id="admin-timer-bar" style="height:100%;width:100%;border-radius:3px;background:var(--green);transition:width 1s linear,background .5s"></div>
+          </div>
+          <span id="admin-timer-text" style="font-size:.82rem;font-weight:900;min-width:2.4rem;text-align:right;color:var(--green)">—</span>
+        </div>
       </div>
     </div>
 
@@ -371,6 +379,14 @@
     <div class="section">
       <div class="section-label">Actions</div>
       <div class="action-btns">
+        <!-- Timer setting -->
+        <div style="display:flex;align-items:center;gap:.45rem;padding:.2rem 0">
+          <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap">⏱ Timer</label>
+          <input id="timer-input" type="number" min="0" max="300" step="5" value="0"
+                 style="width:62px;padding:.28rem .5rem;font-size:.85rem;font-weight:700;border-radius:7px"
+                 onchange="saveTimerSetting()" oninput="saveTimerSetting()">
+          <span style="font-size:.7rem;color:var(--muted)">sec (0 = off)</span>
+        </div>
         <div class="action-row">
           <button class="btn btn-primary" id="btn-show"   onclick="showQuestion()" disabled>▶ Afficher</button>
           <button class="btn btn-yellow"  id="btn-next"   onclick="nextQuestion()" disabled>Suivante →</button>

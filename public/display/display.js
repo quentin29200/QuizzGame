@@ -7,6 +7,7 @@ let sessionCode   = null;
 let players       = [];
 let currentChoices = [];
 let playerCount   = 0;
+let timerInterval  = null;
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
 
@@ -70,9 +71,57 @@ function renderFinalLeaderboard(list) {
   `).join('');
 }
 
+// ─── Timer ─────────────────────────────────────────────────────────────────────
+
+function startDisplayTimer(duration, startedAt, isBuzzer) {
+  console.log('[display] startDisplayTimer appelé', { duration, startedAt, isBuzzer });
+  clearInterval(timerInterval);
+  const ids = isBuzzer
+    ? { wrap: 'display-timer-buzz', ring: 'timer-ring-buzz', num: 'timer-num-buzz' }
+    : { wrap: 'display-timer',      ring: 'timer-ring',      num: 'timer-num'      };
+
+  // Hide both timers first
+  document.getElementById('display-timer').classList.add('hidden');
+  document.getElementById('display-timer-buzz').classList.add('hidden');
+
+  if (!duration) return;
+  const wrap = document.getElementById(ids.wrap);
+  const ring = document.getElementById(ids.ring);
+  const num  = document.getElementById(ids.num);
+  wrap.classList.remove('hidden');
+
+  const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+  let remaining = Math.max(0, duration - elapsed);
+
+  const update = () => {
+    const pct    = Math.max(0, remaining / duration);
+    const offset = 100 * (1 - pct);
+    // Use setAttribute for reliable SVG property setting
+    ring.setAttribute('stroke-dashoffset', offset);
+    num.textContent = remaining;
+    const color = pct > .5 ? '#06b489' : pct > .25 ? '#f5a623' : '#e94560';
+    ring.setAttribute('stroke', color);
+    num.style.color = color;
+  };
+  update();
+  if (remaining <= 0) return;
+  timerInterval = setInterval(() => {
+    remaining = Math.max(0, remaining - 1);
+    update();
+    if (remaining <= 0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function stopDisplayTimer() {
+  clearInterval(timerInterval);
+  document.getElementById('display-timer').classList.add('hidden');
+  document.getElementById('display-timer-buzz').classList.add('hidden');
+}
+
 // ─── Question show ─────────────────────────────────────────────────────────────
 
-socket.on('question:show', ({ text, mode, playerCount: pc }) => {
+socket.on('question:show', ({ text, mode, playerCount: pc, timerDuration, timerStartedAt }) => {
+  console.log('[display] question:show reçu', { mode, timerDuration, timerStartedAt });
   playerCount    = pc || players.length;
   currentChoices = [];
 
@@ -83,6 +132,7 @@ socket.on('question:show', ({ text, mode, playerCount: pc }) => {
     document.getElementById('buzzer-answer-reveal').classList.add('hidden');
     document.getElementById('buzz-waiting').classList.remove('hidden');
     show('buzzer-screen');
+    startDisplayTimer(timerDuration, timerStartedAt, true);
     return;
   }
 
@@ -92,11 +142,13 @@ socket.on('question:show', ({ text, mode, playerCount: pc }) => {
   document.getElementById('vote-count').textContent      = '0';
   document.getElementById('vote-total').textContent      = playerCount;
   show('game-layout');
+  startDisplayTimer(timerDuration, timerStartedAt, false);
 });
 
 // ─── Answer revealed (with all choices) ───────────────────────────────────────
 
 socket.on('question:answer-revealed', ({ correctChoiceIds, allChoices, perChoice }) => {
+  stopDisplayTimer();
   currentChoices = allChoices;
   const total = Object.values(perChoice || {}).reduce((a, b) => a + b, 0);
 
@@ -193,6 +245,7 @@ function renderLeaderboard(list) {
 // ─── Reset game ────────────────────────────────────────────────────────────────
 
 socket.on('game:reset', ({ players: list }) => {
+  stopDisplayTimer();
   currentChoices = [];
   playerCount    = list.length;
   players        = list;

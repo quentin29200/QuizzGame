@@ -179,6 +179,29 @@
     #end-screen { justify-content: center; align-items: center; text-align: center; gap: 1.5rem; }
     #end-screen h2 { font-size: 2rem; font-weight: 800; }
 
+    /* ── Barre timer ── */
+    #play-timer-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 5px; z-index: 200;
+    }
+    #play-timer-fill {
+      height: 100%; width: 100%; border-radius: 0 3px 3px 0;
+      background: var(--green);
+      transition: width 1s linear, background .5s;
+    }
+
+    /* ── Bouton quitter ── */
+    #leave-btn {
+      position: fixed; top: .75rem; right: .75rem; z-index: 100;
+      width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 1.5px solid var(--border);
+      background: var(--surface); color: var(--muted);
+      font-size: 1.1rem; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      transition: color .12s, border-color .12s;
+      touch-action: manipulation;
+    }
+    #leave-btn:hover { color: var(--accent); border-color: var(--accent); }
+
     /* Toast */
     #toast {
       position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
@@ -299,8 +322,10 @@
     <button class="btn btn-primary" style="margin-top:.5rem" onclick="location.reload()">Rejouer</button>
   </div>
 
+  <div id="play-timer-bar" class="hidden"><div id="play-timer-fill"></div></div>
+  <button id="leave-btn" class="hidden" onclick="leaveSession()" title="Quitter la session">✕</button>
   <div id="toast" class="hidden"></div>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/play/play.js"></script>
+  <script src="/play/play.js?v=3"></script>
 </body>
 </html>

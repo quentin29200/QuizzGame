@@ -21,6 +21,8 @@ function getState(code) {
       choiceVotes: {},         // { choiceId: count }
       cashAnswers: [],
       playerModes: {},         // { playerId: mode }
+      timerDuration: 0,        // secondes, 0 = désactivé
+      timerStartedAt: null,    // timestamp ms (Date.now())
     });
   }
   return sessionState.get(code);
@@ -49,7 +51,26 @@ module.exports = function registerSocketHandlers(io) {
         // Room privée pour notifier ce joueur spécifiquement
         socket.join(`${code}:player:${player.id}`);
         io.to(code).emit('players:update', getPlayersBySession(session.id));
-        ack?.({ ok: true, player });
+
+        // Calcul de l'état courant pour resynchroniser le joueur (reconnexion)
+        const state = getState(code);
+        let gameState = null;
+        if (session.state !== 'lobby') {
+          gameState = { sessionState: session.state };
+          if (state.currentQuestionId) {
+            const q = getQuestionsBySession(session.id).find(q => q.id === state.currentQuestionId);
+            if (q) {
+              gameState.question      = { id: q.id, text: q.text, mode: q.mode };
+              gameState.buzzerLocked  = state.buzzerLocked;
+              const answers  = getAnswersByQuestion(state.currentQuestionId);
+              const myAnswer = answers.find(a => a.player_id === player.id);
+              gameState.hasAnswered   = !!myAnswer;
+              gameState.playerMode    = myAnswer?.player_mode ?? null;
+            }
+          }
+        }
+
+        ack?.({ ok: true, player, gameState });
       } else if (role === 'display') {
         // Envoyer l'état courant au display qui vient de rejoindre
         const players = getPlayersBySession(session.id);
@@ -60,7 +81,11 @@ module.exports = function registerSocketHandlers(io) {
           const q = getQuestionsBySession(session.id).find(q => q.id === state.currentQuestionId);
           if (q) {
             const count = Object.values(state.choiceVotes).reduce((a, b) => a + b, 0) + state.cashAnswers.length;
-            socket.emit('question:show', { questionId: q.id, text: q.text, mode: q.mode, playerCount: players.length });
+            socket.emit('question:show', {
+              questionId: q.id, text: q.text, mode: q.mode, playerCount: players.length,
+              timerDuration: state.timerDuration,
+              timerStartedAt: state.timerStartedAt,
+            });
             socket.emit('votes:update', { count, total: players.length, perChoice: { ...state.choiceVotes } });
 
             // Si la réponse est déjà révélée, envoyer aussi l'état révélé
@@ -127,7 +152,7 @@ module.exports = function registerSocketHandlers(io) {
 
     // ── Admin: show question ────────────────────────────────────────────────
 
-    socket.on('question:show', ({ code, questionId }) => {
+    socket.on('question:show', ({ code, questionId, timerDuration }) => {
       const session = getSessionByCode(code);
       if (!session) return;
 
@@ -138,6 +163,8 @@ module.exports = function registerSocketHandlers(io) {
       state.cashAnswers = [];
       state.playerModes = {};
       state.currentChoices = getChoicesByQuestion(questionId);
+      state.timerDuration  = timerDuration || 0;
+      state.timerStartedAt = timerDuration ? Date.now() : null;
 
       const q = getQuestionsBySession(session.id).find(q => q.id === questionId);
       if (!q) return;
@@ -145,7 +172,11 @@ module.exports = function registerSocketHandlers(io) {
       updateSessionState(code, 'question');
       const playerCount = getPlayersBySession(session.id).length;
 
-      io.to(code).emit('question:show', { questionId: q.id, text: q.text, mode: q.mode, playerCount });
+      io.to(code).emit('question:show', {
+        questionId: q.id, text: q.text, mode: q.mode, playerCount,
+        timerDuration: state.timerDuration,
+        timerStartedAt: state.timerStartedAt,
+      });
       io.to(code).emit('votes:update', { count: 0, total: playerCount, perChoice: {} });
 
       // Reset admin answers list

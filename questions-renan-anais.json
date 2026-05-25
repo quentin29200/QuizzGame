@@ -1,0 +1,319 @@
+{
+  "title": "Quiz Renan & Anaïs",
+  "questions": [
+    {
+      "text": "Quand est-ce que Renan a demandé Anaïs en mariage ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Au nouvel an", "isCorrect": false },
+        { "label": "30 ans d'Anaïs", "isCorrect": true },
+        { "label": "30 ans de Renan", "isCorrect": false },
+        { "label": "A la pentecôte", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel âge avait Anaïs quand elle a rencontré Renan ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "22 ans", "isCorrect": false },
+        { "label": "20 ans", "isCorrect": false },
+        { "label": "18 ans", "isCorrect": true },
+        { "label": "10 ans", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel âge avait Renan quand il a rencontré Anaïs ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "21 ans", "isCorrect": true },
+        { "label": "18 ans", "isCorrect": false },
+        { "label": "25 ans", "isCorrect": false },
+        { "label": "13 ans", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quand est-ce qu'ils se sont mis en couple ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "18 octobre 2012", "isCorrect": false },
+        { "label": "22 octobre 2012", "isCorrect": false },
+        { "label": "27 octobre 2012", "isCorrect": true },
+        { "label": "31 février 2012", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle est la date de naissance d'Ewen ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "16 septembre 2020", "isCorrect": true },
+        { "label": "16 août 2020", "isCorrect": false },
+        { "label": "17 septembre 2020", "isCorrect": false },
+        { "label": "25 décembre 2020", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le prénom du frère de Renan ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Loïc", "isCorrect": false },
+        { "label": "Gwenn", "isCorrect": true },
+        { "label": "Daniel", "isCorrect": false },
+        { "label": "Michel", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le prénom de la soeur d'Anaïs ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Mélanie", "isCorrect": true },
+        { "label": "Manon", "isCorrect": false },
+        { "label": "Malvina", "isCorrect": false },
+        { "label": "Michelle", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle taille faisait Albane à la naissance ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "46cm", "isCorrect": false },
+        { "label": "49cm", "isCorrect": false },
+        { "label": "51cm", "isCorrect": true },
+        { "label": "1m32 comme Mimie Mathy", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Au bout de combien de fois Anaïs a-t-elle eu son permis ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Où est-ce que Renan a été au Lycée ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Victor Hélène Basch", "isCorrect": true },
+        { "label": "Jean Macé", "isCorrect": false },
+        { "label": "Joliot", "isCorrect": false },
+        { "label": "(Jean) La salle", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le nom de la boite où travaille Renan ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "X-M", "isCorrect": false },
+        { "label": "BM-X", "isCorrect": false },
+        { "label": "M-X", "isCorrect": true },
+        { "label": "X-Men", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel est le sport qu'Anaïs faisait au collège / Lycée ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Volley", "isCorrect": false },
+        { "label": "Basket", "isCorrect": true },
+        { "label": "Tennis", "isCorrect": false },
+        { "label": "Cecifoot", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle serait la réaction d'Anaïs si Renan oublie la date d'anniversaire de Mariage ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Où était leur premier appartement ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Saint-Jacques", "isCorrect": true },
+        { "label": "Le Rheu", "isCorrect": false },
+        { "label": "Rennes", "isCorrect": false },
+        { "label": "Guadeloupe", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Où est-ce qu'ils logeaient en 2019 ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Chez les parents d'Anaïs", "isCorrect": false },
+        { "label": "Chez les parents de Renan", "isCorrect": true },
+        { "label": "Chez un amis", "isCorrect": false },
+        { "label": "Chez Maumau et Malwenn", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel était le déguisement de Renan aux 20 ans de Maumau et Malwenn ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Mario", "isCorrect": false },
+        { "label": "Luigi", "isCorrect": true },
+        { "label": "Toad", "isCorrect": false },
+        { "label": "Peach", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel était le déguisement d'Anaïs aux 20 ans de Maumau et Malwenn ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Dupont", "isCorrect": true },
+        { "label": "Dupond", "isCorrect": false },
+        { "label": "Captain Haddock", "isCorrect": false },
+        { "label": "Milou", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quelle est leur adresse précise ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "29 rue de Ouessant", "isCorrect": false },
+        { "label": "56 rue de Belle-île", "isCorrect": false },
+        { "label": "22 rue de Bréhat", "isCorrect": true },
+        { "label": "28 la basse rivière", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quels sont les prénoms de leurs enfants ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Lors de la demande en mariage, la bague de fiançailles était…",
+      "mode": "normal",
+      "choices": [
+        {
+          "label": "Parfaite, il avait bien fait ses devoirs",
+          "isCorrect": false
+        },
+        { "label": "Trop grande, elle glissait partout", "isCorrect": false },
+        {
+          "label": "Trop petite, le moment romantique est devenu un moment de lutte",
+          "isCorrect": true
+        },
+        {
+          "label": "Tellement belle qu'elle en a oublié de dire oui",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Comment Ewen appelle-t-il Renan ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quel était le gage quand l'avion d'Ewen sonnait ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Manger un piment", "isCorrect": false },
+        { "label": "Se lever et s'assoir", "isCorrect": false },
+        { "label": "Boire un coup", "isCorrect": true },
+        {
+          "label": "Jeter l'avion dans la piscine parce que c'était méga relou",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "text": "Quelle est la boisson préférée de Renan ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quelle est la boisson préférée d'Anaïs en 2010/2011 ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Manzana", "isCorrect": false },
+        { "label": "Vodka black", "isCorrect": true },
+        { "label": "Malibu", "isCorrect": false },
+        { "label": "Mister Cocktail", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel était le métier que souhaitait faire Anaïs au Lycée ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Institutrice", "isCorrect": false },
+        { "label": "Infirmière", "isCorrect": false },
+        { "label": "Kiné", "isCorrect": true },
+        { "label": "Barwomen", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Citez tous les permis que possède Renan",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Citez 4 lieux où ils sont allés en vacances ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Qui a fait le premier pas ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quel est le plus gros défaut d'Anaïs selon Renan ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quel est le plus gros défaut de Renan selon Anaïs ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quelle est la plus grosse addiction d'Anaïs ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Fraise", "isCorrect": false },
+        { "label": "Noix", "isCorrect": false },
+        { "label": "Chocolat", "isCorrect": true },
+        { "label": "Celeri", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Comment les invités vont-ils se garer au mariage ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Bah, sur un parking", "isCorrect": false },
+        { "label": "Dans un champs", "isCorrect": false },
+        { "label": "Au bord de la route", "isCorrect": false },
+        { "label": "Un parking ? Pour quoi faire ?", "isCorrect": true }
+      ]
+    },
+    {
+      "text": "Quelle est la chose la plus improbable qu'Anaïs a fait en soirée ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Perdre son portefeuille", "isCorrect": false },
+        { "label": "Croiser les flics dans la rue", "isCorrect": false },
+        { "label": "Un bain de minuit", "isCorrect": true },
+        { "label": "Se prendre un muret", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Quel était le nom de la correspondante argentine d'Anaïs ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "Maria", "isCorrect": false },
+        { "label": "Agustina", "isCorrect": true },
+        { "label": "Lucia", "isCorrect": false },
+        { "label": "Aya Nakamura", "isCorrect": false }
+      ]
+    },
+    {
+      "text": "Citez des gens dans cette salle qui n'ont pas fait de tour en avion ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quel est le rhum préféré de Renan ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quelle était l'année de la première soirée à Querrien ?",
+      "mode": "buzzer"
+    },
+    {
+      "text": "Quelle était la première voiture de Renan ?",
+      "mode": "normal",
+      "choices": [
+        { "label": "BMW", "isCorrect": false },
+        { "label": "Volkswagen", "isCorrect": true },
+        { "label": "Renault", "isCorrect": false },
+        { "label": "Lamborghini", "isCorrect": false }
+      ]
+    }
+  ]
+}

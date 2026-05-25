@@ -17,7 +17,44 @@
       --cd-bg:#2a1a2a; --cd:#ed93b1;
       --gold: #ffd166;
       --font: 'Segoe UI', system-ui, sans-serif;
+      --toggle-bg: rgba(255,255,255,.08);
+      --toggle-color: rgba(255,255,255,.35);
     }
+    body.light-mode {
+      --bg:    #f0f2f8;
+      --surf:  #ffffff;
+      --muted: #c0c4d8;
+      --text:  #1a1a2e;
+      --ca-bg:#ddeeff; --ca:#2a6db5;
+      --cb-bg:#d9f5eb; --cb:#1a7a5e;
+      --cc-bg:#fff0d9; --cc:#a05e00;
+      --cd-bg:#f5e0ee; --cd:#9e2060;
+      --gold: #c8860a;
+      --toggle-bg: rgba(0,0,0,.08);
+      --toggle-color: rgba(0,0,0,.4);
+    }
+    body.light-mode #code-corner { color: rgba(0,0,0,.15); }
+    body.light-mode .lobby-hint  { color: #888; }
+    body.light-mode .lobby-status { color: #aaa; }
+    body.light-mode .q-mode-pill { background: rgba(0,0,0,.06); color: #999; }
+    body.light-mode .q-counter   { color: #aaa; }
+    body.light-mode .q-counter strong { color: #666; }
+    body.light-mode .timer-ring-bg  { stroke: rgba(0,0,0,.08); }
+    body.light-mode #leaderboard-col { background: rgba(0,0,0,.04); }
+    body.light-mode .lb-row { background: rgba(0,0,0,.04); }
+    body.light-mode .lb-row.lb-1 { background: rgba(200,134,10,.12); }
+    body.light-mode .lb-row.lb-2 { background: rgba(100,100,100,.08); }
+    body.light-mode .lb-row.lb-3 { background: rgba(155,97,40,.1); }
+    body.light-mode .lb-title { color: #aaa; }
+    body.light-mode .lb-rank  { color: #aaa; }
+    body.light-mode .lb-empty { color: #bbb; }
+    body.light-mode .buzz-waiting { color: #bbb; }
+    body.light-mode #game-layout #question-col { border-right-color: rgba(0,0,0,.08); }
+    body.light-mode #players-bar { background: rgba(240,242,248,.92); border-top-color: rgba(0,0,0,.06); }
+    body.light-mode .p-chip { background: rgba(0,0,0,.06); }
+    body.light-mode .vbar-wrap { background: rgba(0,0,0,.08); }
+    body.light-mode .final-row { background: rgba(0,0,0,.04); }
+    body.light-mode .final-rank { color: #aaa; }
     body {
       background: var(--bg); color: var(--text); font-family: var(--font);
       height: 100vh; overflow: hidden;
@@ -77,6 +114,22 @@
     }
     .q-counter { font-size: .9rem; color: #444; }
     .q-counter strong { color: #888; font-size: 1rem; }
+
+    /* ── Timer ring ── */
+    .timer-wrap {
+      position: relative; width: 72px; height: 72px; flex-shrink: 0;
+    }
+    .timer-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .timer-ring-bg   { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 3; }
+    .timer-ring-fill {
+      fill: none; stroke: #06b489; stroke-width: 3; stroke-linecap: round;
+      stroke-dasharray: 100; stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear, stroke .5s;
+    }
+    .timer-num {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; font-weight: 900; color: #06b489; transition: color .5s;
+    }
 
     #question-text {
       font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 700;
@@ -222,6 +275,22 @@
     .final-name  { flex: 1; font-size: .95rem; font-weight: 600; }
     .final-score { font-size: .95rem; font-weight: 800; color: var(--gold); }
 
+    /* ══ THEME TOGGLE ══ */
+    #theme-toggle {
+      position: fixed; top: 1rem; right: 1.5rem; z-index: 30;
+      background: var(--toggle-bg); color: var(--toggle-color);
+      border: none; border-radius: 999px;
+      width: 2.2rem; height: 2.2rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .2s, color .2s, transform .15s;
+      font-size: 1rem; line-height: 1;
+    }
+    #theme-toggle:hover {
+      background: rgba(128,128,128,.18);
+      color: var(--text);
+      transform: scale(1.1);
+    }
+
     /* ══ PLAYERS BAR ══ */
     #players-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
@@ -242,6 +311,9 @@
 
   <div id="code-corner"></div>
 
+  <!-- ══ THEME TOGGLE ══ -->
+  <button id="theme-toggle" title="Basculer dark/light mode">🌙</button>
+
   <!-- ══ LOBBY ══ -->
   <div id="lobby">
     <div class="lobby-title">Quizz<span>Game</span></div>
@@ -260,6 +332,14 @@
     <div id="question-col">
       <div class="q-meta">
         <span class="q-mode-pill" id="q-mode-label">Question</span>
+        <!-- Timer ring (normal questions) -->
+        <div id="display-timer" class="timer-wrap hidden">
+          <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <circle class="timer-ring-bg"   cx="18" cy="18" r="15.9"/>
+            <circle class="timer-ring-fill" cx="18" cy="18" r="15.9" id="timer-ring"/>
+          </svg>
+          <span class="timer-num" id="timer-num"></span>
+        </div>
         <span class="q-counter">
           <strong id="vote-count">0</strong> / <span id="vote-total">0</span> réponses
         </span>
@@ -281,6 +361,14 @@
   <div id="buzzer-screen" class="hidden">
     <div class="buzz-label" id="buzz-label">Mode Buzzer</div>
     <div id="buzz-question-text"></div>
+    <!-- Timer ring (buzzer) -->
+    <div id="display-timer-buzz" class="timer-wrap hidden" style="width:80px;height:80px">
+      <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <circle class="timer-ring-bg"   cx="18" cy="18" r="15.9"/>
+        <circle class="timer-ring-fill" cx="18" cy="18" r="15.9" id="timer-ring-buzz"/>
+      </svg>
+      <span class="timer-num" id="timer-num-buzz" style="font-size:1.4rem"></span>
+    </div>
     <div id="winner-display" class="hidden"></div>
     <div class="buzz-waiting" id="buzz-waiting">Prêts ? À vos buzzers !</div>
     <div id="buzzer-answer-reveal" class="hidden" style="
@@ -302,6 +390,35 @@
   <div id="players-bar"></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/display/display.js"></script>
+  <script src="/display/display.js?v=3"></script>
+  <script>
+    (function () {
+      const btn = document.getElementById('theme-toggle');
+      const STORAGE_KEY = 'display-theme';
+
+      function applyTheme(theme) {
+        if (theme === 'light') {
+          document.body.classList.add('light-mode');
+          btn.textContent = '☀️';
+          btn.title = 'Passer en mode sombre';
+        } else {
+          document.body.classList.remove('light-mode');
+          btn.textContent = '🌙';
+          btn.title = 'Passer en mode clair';
+        }
+      }
+
+      // Restaurer la préférence sauvegardée (dark par défaut)
+      const saved = localStorage.getItem(STORAGE_KEY) || 'dark';
+      applyTheme(saved);
+
+      btn.addEventListener('click', function () {
+        const isLight = document.body.classList.contains('light-mode');
+        const next = isLight ? 'dark' : 'light';
+        localStorage.setItem(STORAGE_KEY, next);
+        applyTheme(next);
+      });
+    })();
+  </script>
 </body>
 </html>
