@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QuizzGame — Display</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -275,6 +276,22 @@
     .final-name  { flex: 1; font-size: .95rem; font-weight: 600; }
     .final-score { font-size: .95rem; font-weight: 800; color: var(--gold); }
 
+    /* ══ QR CODE ══ */
+    #qr-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: .6rem;
+    }
+    #qr-code {
+      padding: .6rem; border-radius: 12px;
+      background: #fff;          /* toujours blanc pour la lisibilité du QR */
+      box-shadow: 0 4px 24px rgba(0,0,0,.35);
+      line-height: 0;            /* évite l'espace sous le canvas */
+    }
+    #qr-code canvas, #qr-code img { display: block; border-radius: 6px; }
+    #qr-hint {
+      font-size: .8rem; color: #555; letter-spacing: .05em;
+    }
+    body.light-mode #qr-hint { color: #999; }
+
     /* ══ THEME TOGGLE ══ */
     #theme-toggle {
       position: fixed; top: 1rem; right: 1.5rem; z-index: 30;
@@ -321,6 +338,10 @@
       <div class="lobby-hint" style="margin-bottom:.6rem">Rejoignez sur votre mobile</div>
       <div class="lobby-code" id="display-code">——</div>
       <div class="lobby-hint" style="margin-top:.6rem">→ /play</div>
+    </div>
+    <div id="qr-wrap" class="hidden">
+      <div id="qr-code"></div>
+      <div id="qr-hint">Scanner pour rejoindre</div>
     </div>
     <div class="lobby-status" id="lobby-status">Aucun joueur connecté</div>
   </div>

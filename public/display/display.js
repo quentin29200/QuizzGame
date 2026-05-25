@@ -25,6 +25,31 @@ function connectToSession(code) {
   socket.emit('session:join', { code, role: 'display' }, (res) => {
     if (res?.error) console.error(res.error);
   });
+  generateSessionQR(code);
+}
+
+function generateSessionQR(code) {
+  const wrap = document.getElementById('qr-wrap');
+  const container = document.getElementById('qr-code');
+  if (!wrap || !container) return;
+
+  // Construit l'URL à partir de l'origine courante
+  const base = window.location.origin;
+  const url  = `${base}/play?code=${code}`;
+
+  // Vide le conteneur si un QR précédent existe
+  container.innerHTML = '';
+
+  new QRCode(container, {
+    text:         url,
+    width:        160,
+    height:       160,
+    colorDark:    '#000000',
+    colorLight:   '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  wrap.classList.remove('hidden');
 }
 
 socket.on('connect', () => { if (sessionCode) connectToSession(sessionCode); });
