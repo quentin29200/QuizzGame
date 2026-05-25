@@ -327,5 +327,16 @@
   <div id="toast" class="hidden"></div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/play/play.js?v=3"></script>
+  <script>
+    (function () {
+      const code = new URLSearchParams(location.search).get('code');
+      if (code) {
+        const input = document.getElementById('code-input');
+        input.value = code.toUpperCase();
+        // Focus le champ pseudo pour que le joueur enchaîne directement
+        document.getElementById('name-input').focus();
+      }
+    })();
+  </script>
 </body>
 </html>
