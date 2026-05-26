@@ -3,7 +3,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const { getDb } = require('./db/schema');
-const { createSession, getSessionByCode, importQuestions } = require('./db/queries');
+const { createSession, createBlindTestSession, getSessionByCode, importQuestions, importSongs } = require('./db/queries');
 const registerSocketHandlers = require('./socket/handlers');
 
 const PORT = process.env.PORT || 3000;
@@ -38,7 +38,27 @@ function generateCode() {
 app.post('/api/sessions', (req, res) => {
   const code = generateCode();
   const id = createSession(code);
-  res.json({ id, code });
+  res.json({ id, code, type: 'quiz' });
+});
+
+app.post('/api/sessions/blindtest', (req, res) => {
+  const code = generateCode();
+  const id = createBlindTestSession(code);
+  res.json({ id, code, type: 'blindtest' });
+});
+
+app.post('/api/sessions/blindtest/import', (req, res) => {
+  const { songs } = req.body;
+  if (!Array.isArray(songs) || songs.length === 0)
+    return res.status(400).json({ error: 'songs[] requis et non vide' });
+  for (const [i, s] of songs.entries()) {
+    if (!s.title?.trim())  return res.status(400).json({ error: `Chanson ${i + 1} : title manquant` });
+    if (!s.artist?.trim()) return res.status(400).json({ error: `Chanson ${i + 1} : artist manquant` });
+  }
+  const code      = generateCode();
+  const id        = createBlindTestSession(code);
+  const songCount = importSongs(id, songs);
+  res.json({ id, code, type: 'blindtest', songCount });
 });
 
 app.get('/api/sessions/:code', (req, res) => {

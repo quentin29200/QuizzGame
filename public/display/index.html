@@ -201,6 +201,48 @@
     .lb-score { font-size: 1.05rem; font-weight: 900; color: var(--gold); }
     .lb-empty { color: #333; font-size: .83rem; }
 
+    /* ══ BLIND TEST SCREEN ══ */
+    #bt-screen {
+      flex: 1; display: flex; overflow: hidden;
+    }
+    #bt-question-col {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2rem; padding: 3rem 2.5rem 4rem; text-align: center;
+      border-right: 1px solid rgba(255,255,255,.05);
+    }
+    .bt-note {
+      font-size: clamp(4rem, 10vw, 7rem); line-height: 1;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    #bt-question-label {
+      font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 700; line-height: 1.35;
+      max-width: 820px;
+      animation: fadeUp .4s ease;
+    }
+    #bt-winner-display {
+      font-size: clamp(4rem, 11vw, 8rem); font-weight: 900;
+      color: var(--gold); line-height: 1;
+      text-shadow: 0 0 80px rgba(255,209,102,.45);
+      animation: winnerIn .5s cubic-bezier(.175,.885,.32,1.275);
+    }
+    #bt-reveal {
+      display: flex; flex-direction: column; align-items: center; gap: .5rem;
+      animation: fadeUp .5s ease;
+    }
+    #bt-reveal-title  {
+      font-size: clamp(2rem, 4.5vw, 3.5rem); font-weight: 900;
+      color: #c084fc;
+    }
+    #bt-reveal-artist {
+      font-size: clamp(1.2rem, 2.8vw, 2rem); font-weight: 700; color: #e9d5ff;
+    }
+    .bt-waiting { color: #333; font-size: 1.1rem; animation: pulse 1.5s ease-in-out infinite; }
+
+    body.light-mode #bt-reveal-title  { color: #7c3aed; }
+    body.light-mode #bt-reveal-artist { color: #6d28d9; }
+    body.light-mode .bt-waiting { color: #bbb; }
+
     /* ══ BUZZER SCREEN ══ */
     #buzzer-screen {
       flex: 1; display: flex; flex-direction: column;
@@ -398,6 +440,28 @@
       font-size:clamp(1.4rem,3vw,2.2rem); font-weight:800; color:#06b489;
       animation:fadeUp .4s ease;
     "></div>
+  </div>
+
+  <!-- ══ BLIND TEST SCREEN ══ -->
+  <div id="bt-screen" class="hidden">
+    <!-- Colonne question -->
+    <div id="bt-question-col">
+      <div class="bt-note">🎵</div>
+      <div id="bt-question-label">Quel est l'artiste et le titre de cette musique ?</div>
+      <div id="bt-winner-display" class="hidden"></div>
+      <div id="bt-reveal" class="hidden">
+        <div id="bt-reveal-title"></div>
+        <div id="bt-reveal-artist"></div>
+      </div>
+      <div class="bt-waiting" id="bt-waiting">À vos buzzers !</div>
+    </div>
+    <!-- Classement -->
+    <div id="leaderboard-col" style="display:flex;flex-direction:column;padding:1.5rem 1rem 4rem;gap:1rem;background:rgba(0,0,0,.25);overflow-y:auto;width:280px;flex-shrink:0">
+      <div class="lb-title">Classement</div>
+      <div class="lb-list" id="bt-lb-list">
+        <div class="lb-empty">En attente de joueurs…</div>
+      </div>
+    </div>
   </div>
 
   <!-- ══ FINAL SCREEN ══ -->

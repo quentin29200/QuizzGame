@@ -1,9 +1,14 @@
 const { getDb } = require('./schema');
 
-// ── Sessions ──────────────────────────────────────────────────────────────────
+// -- Sessions ------------------------------------------------------------------
 
 function createSession(code) {
   const info = getDb().prepare('INSERT INTO sessions (code) VALUES (?)').run(code);
+  return info.lastInsertRowid;
+}
+
+function createBlindTestSession(code) {
+  const info = getDb().prepare("INSERT INTO sessions (code, type) VALUES (?, 'blindtest')").run(code);
   return info.lastInsertRowid;
 }
 
@@ -22,7 +27,7 @@ function generateCode() {
 
 /**
  * Copie toutes les questions + choices d'une session vers une autre.
- * Retourne le nombre de questions copiées.
+ * Retourne le nombre de questions copiees.
  */
 function duplicateQuestions(fromSessionId, toSessionId) {
   const db        = getDb();
@@ -46,7 +51,7 @@ function updateSessionState(code, state) {
   getDb().prepare('UPDATE sessions SET state = ? WHERE code = ?').run(state, code);
 }
 
-// ── Players ───────────────────────────────────────────────────────────────────
+// -- Players -------------------------------------------------------------------
 
 function upsertPlayer(sessionId, socketId, name) {
   const db = getDb();
@@ -69,7 +74,7 @@ function resetPlayerScores(sessionId) {
   getDb().prepare('UPDATE players SET score = 0 WHERE session_id = ?').run(sessionId);
 }
 
-// ── Questions ─────────────────────────────────────────────────────────────────
+// -- Questions -----------------------------------------------------------------
 
 function insertQuestion(sessionId, text, mode, position) {
   const info = getDb().prepare(
@@ -97,11 +102,7 @@ function updateQuestion(questionId, text, mode) {
 }
 
 /**
- * Met à jour les choix d'une question.
- * - Met à jour les choix existants par position
- * - Insère les nouveaux s'il y en a plus qu'avant
- * - Tente de supprimer les choix en trop ; si FK violation (réponses liées),
- *   les marque comme "[supprimé]" pour ne pas casser l'historique
+ * Met a jour les choix d'une question.
  */
 function replaceChoices(questionId, newChoices) {
   const db       = getDb();
@@ -117,14 +118,12 @@ function replaceChoices(questionId, newChoices) {
     }
   });
 
-  // Supprimer les choix excédentaires (si passage de 4 à moins de choix)
   if (existing.length > newChoices.length) {
     existing.slice(newChoices.length).forEach(c => {
       try {
         db.prepare('DELETE FROM choices WHERE id = ?').run(c.id);
       } catch {
-        // Des réponses pointent vers ce choix : on le garde mais on le neutralise
-        db.prepare("UPDATE choices SET label = '[supprimé]', is_correct = 0 WHERE id = ?").run(c.id);
+        db.prepare("UPDATE choices SET label = '[supprime]', is_correct = 0 WHERE id = ?").run(c.id);
       }
     });
   }
@@ -132,7 +131,6 @@ function replaceChoices(questionId, newChoices) {
 
 /**
  * Importe un tableau de questions (avec leurs choices) dans une session existante.
- * Retourne le nombre de questions insérées.
  */
 function importQuestions(sessionId, questions) {
   const db = getDb();
@@ -154,7 +152,60 @@ function importQuestions(sessionId, questions) {
   return questions.length;
 }
 
-// ── Answers ───────────────────────────────────────────────────────────────────
+// -- Songs (Blind Test) --------------------------------------------------------
+
+function insertSong(sessionId, title, artist, youtubeUrl, position) {
+  return getDb().prepare(
+    'INSERT INTO songs (session_id, title, artist, youtube_url, position) VALUES (?, ?, ?, ?, ?)'
+  ).run(sessionId, title, artist, youtubeUrl || null, position).lastInsertRowid;
+}
+
+function getSongsBySession(sessionId) {
+  return getDb().prepare('SELECT * FROM songs WHERE session_id = ? ORDER BY position').all(sessionId);
+}
+
+function updateSong(songId, title, artist, youtubeUrl) {
+  getDb().prepare('UPDATE songs SET title = ?, artist = ?, youtube_url = ? WHERE id = ?')
+    .run(title, artist, youtubeUrl || null, songId);
+}
+
+function deleteSong(songId) {
+  getDb().prepare('DELETE FROM songs WHERE id = ?').run(songId);
+}
+
+function importSongs(sessionId, songsData) {
+  const db = getDb();
+  let position = db.prepare('SELECT COUNT(*) as c FROM songs WHERE session_id = ?').get(sessionId).c;
+  for (const s of songsData) {
+    db.prepare('INSERT INTO songs (session_id, title, artist, youtube_url, position) VALUES (?, ?, ?, ?, ?)')
+      .run(sessionId, s.title?.trim() || '', s.artist?.trim() || '', s.youtubeUrl || s.youtube_url || null, position++);
+  }
+  return songsData.length;
+}
+
+function duplicateSongs(fromSessionId, toSessionId) {
+  const db    = getDb();
+  const songs = db.prepare('SELECT * FROM songs WHERE session_id = ? ORDER BY position').all(fromSessionId);
+  for (const s of songs) {
+    db.prepare('INSERT INTO songs (session_id, title, artist, youtube_url, position) VALUES (?, ?, ?, ?, ?)')
+      .run(toSessionId, s.title, s.artist, s.youtube_url, s.position);
+  }
+  return songs.length;
+}
+
+function insertBtBuzz(sessionId, songId, playerId, buzzTs) {
+  try {
+    return getDb().prepare(
+      'INSERT INTO bt_buzz_events (session_id, song_id, player_id, buzz_ts) VALUES (?, ?, ?, ?)'
+    ).run(sessionId, songId, playerId, buzzTs).lastInsertRowid;
+  } catch { return null; }
+}
+
+function setBtWinner(buzzId) {
+  getDb().prepare('UPDATE bt_buzz_events SET is_winner = 1 WHERE id = ?').run(buzzId);
+}
+
+// -- Answers -------------------------------------------------------------------
 
 function insertAnswer({ sessionId, questionId, playerId, choiceId, textAnswer, playerMode }) {
   try {
@@ -178,7 +229,7 @@ function getAnswersByQuestion(questionId) {
   `).all(questionId);
 }
 
-// ── Buzz events ───────────────────────────────────────────────────────────────
+// -- Buzz events ---------------------------------------------------------------
 
 function insertBuzz(sessionId, questionId, playerId, buzzTs) {
   try {
@@ -194,10 +245,12 @@ function setWinner(buzzId) {
 }
 
 module.exports = {
-  createSession, getSessionByCode, updateSessionState, generateCode, importQuestions,
+  createSession, createBlindTestSession, getSessionByCode, updateSessionState, generateCode, importQuestions,
   upsertPlayer, getPlayersBySession, updatePlayerScore, resetPlayerScores,
   insertQuestion, insertChoice, getQuestionsBySession, getChoicesByQuestion,
   updateQuestion, replaceChoices, duplicateQuestions,
   insertAnswer, getAnswersByQuestion,
   insertBuzz, setWinner,
+  insertSong, getSongsBySession, updateSong, deleteSong, importSongs, duplicateSongs,
+  insertBtBuzz, setBtWinner,
 };

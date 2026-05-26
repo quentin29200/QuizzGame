@@ -57,7 +57,7 @@ socket.on('connect', () => { if (sessionCode) connectToSession(sessionCode); });
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
 function show(id) {
-  ['lobby', 'game-layout', 'buzzer-screen', 'final-screen'].forEach(s =>
+  ['lobby', 'game-layout', 'buzzer-screen', 'bt-screen', 'final-screen'].forEach(s =>
     document.getElementById(s).classList.toggle('hidden', s !== id)
   );
 }
@@ -250,6 +250,7 @@ socket.on('players:update', (list) => {
 
   // Leaderboard (sorted by score, already from server)
   renderLeaderboard(list);
+  renderBtLeaderboard(list);
 });
 
 function renderLeaderboard(list) {
@@ -258,6 +259,55 @@ function renderLeaderboard(list) {
     el.innerHTML = '<div class="lb-empty">En attente de joueurs…</div>';
     return;
   }
+  el.innerHTML = list.map((p, i) => `
+    <div class="lb-row ${i < 3 ? `lb-${i + 1}` : ''}">
+      <span class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+      <span class="lb-name">${p.name}</span>
+      <span class="lb-score">${p.score}</span>
+    </div>
+  `).join('');
+}
+
+// ─── Blind Test events ────────────────────────────────────────────────────────
+
+socket.on('bt:song-show', () => {
+  // Reset BT screen state
+  document.getElementById('bt-winner-display').classList.add('hidden');
+  document.getElementById('bt-winner-display').textContent = '';
+  document.getElementById('bt-reveal').classList.add('hidden');
+  document.getElementById('bt-reveal-title').textContent  = '';
+  document.getElementById('bt-reveal-artist').textContent = '';
+  document.getElementById('bt-waiting').classList.remove('hidden');
+  show('bt-screen');
+});
+
+socket.on('bt:winner', ({ playerName }) => {
+  document.getElementById('bt-waiting').classList.add('hidden');
+  const w = document.getElementById('bt-winner-display');
+  w.textContent = playerName;
+  w.classList.remove('hidden');
+});
+
+socket.on('bt:validated', ({ title, artist }) => {
+  document.getElementById('bt-winner-display').classList.add('hidden');
+  document.getElementById('bt-waiting').classList.add('hidden');
+  document.getElementById('bt-reveal-title').textContent  = title;
+  document.getElementById('bt-reveal-artist').textContent = artist;
+  document.getElementById('bt-reveal').classList.remove('hidden');
+  // Mettre à jour le classement BT
+  renderBtLeaderboard(players);
+});
+
+socket.on('bt:reset', () => {
+  document.getElementById('bt-winner-display').classList.add('hidden');
+  document.getElementById('bt-winner-display').textContent = '';
+  document.getElementById('bt-waiting').classList.remove('hidden');
+});
+
+function renderBtLeaderboard(list) {
+  const el = document.getElementById('bt-lb-list');
+  if (!el) return;
+  if (!list.length) { el.innerHTML = '<div class="lb-empty">En attente de joueurs…</div>'; return; }
   el.innerHTML = list.map((p, i) => `
     <div class="lb-row ${i < 3 ? `lb-${i + 1}` : ''}">
       <span class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>

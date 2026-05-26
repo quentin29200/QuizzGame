@@ -4,6 +4,7 @@ const LETTERS = ['A', 'B', 'C', 'D'];
 const COLOR_CLASSES = ['ca', 'cb', 'cc', 'cd'];
 
 let sessionCode   = null;
+let sessionType   = 'quiz'; // 'quiz' | 'blindtest'
 let playerName    = null;
 let playerId      = null;
 let currentMode   = null;   // question mode: 'normal' | 'buzzer'
@@ -78,6 +79,22 @@ function syncToGameState(gs) {
   if (!gs) { show('lobby-screen'); return; }
 
   if (gs.sessionState === 'ended') { show('end-screen'); return; }
+
+  // ── Blind Test resync ──
+  if (gs.sessionType === 'blindtest') {
+    if (gs.song) {
+      buzzerLocked = gs.btBuzzerLocked || false;
+      document.getElementById('buzz-question').textContent = '🎵 Blind Test — Buzzez pour répondre !';
+      document.getElementById('buzz-btn').disabled = buzzerLocked;
+      document.getElementById('buzz-ring').style.animationPlayState = buzzerLocked ? 'paused' : 'running';
+      document.getElementById('buzz-status').textContent = buzzerLocked ? 'En attente…' : '';
+      document.getElementById('buzz-status').className   = '';
+      show('buzzer-screen');
+    } else {
+      show('lobby-screen');
+    }
+    return;
+  }
 
   if (!gs.question) { show('lobby-screen'); return; }
 
@@ -160,11 +177,13 @@ function joinSession() {
   socket.emit('session:join', { code, role: 'player', name }, (res) => {
     if (res?.error) return toast(res.error, true);
     sessionCode = code;
+    sessionType = res.sessionType || 'quiz';
     playerName  = name;
     playerId    = res.player?.id;
     localStorage.setItem('playerSession', JSON.stringify({ code, name }));
     document.getElementById('lobby-name').textContent = name;
     document.getElementById('lobby-code').textContent = code;
+
     if (res.gameState) {
       syncToGameState(res.gameState);
     } else {
@@ -177,7 +196,8 @@ socket.on('connect', () => {
   if (sessionCode && playerName) {
     socket.emit('session:join', { code: sessionCode, role: 'player', name: playerName }, (res) => {
       if (!res?.player) return;
-      playerId = res.player.id;
+      playerId    = res.player.id;
+      sessionType = res.sessionType || sessionType;
       if (res.gameState) syncToGameState(res.gameState);
     });
   }
@@ -298,7 +318,8 @@ function submitCash() {
 
 function doBuzz() {
   if (buzzerLocked) return;
-  socket.emit('player:buzz', {}, (res) => {
+  const event = sessionType === 'blindtest' ? 'bt:buzz' : 'player:buzz';
+  socket.emit(event, {}, (res) => {
     if (res?.locked) { lockBuzzer('Trop tard…'); return; }
     if (res?.winner) {
       document.getElementById('buzz-btn').disabled = true;
@@ -385,6 +406,41 @@ socket.on('cash:result', ({ valid }) => {
     sent.style.color = '#e94560';
   }
   sent.classList.remove('hidden');
+});
+
+// ─── Blind Test events ────────────────────────────────────────────────────────
+
+socket.on('bt:song-show', () => {
+  buzzerLocked = false;
+  document.getElementById('buzz-question').textContent = '🎵 Blind Test — Buzzez pour répondre !';
+  document.getElementById('buzz-btn').disabled = false;
+  document.getElementById('buzz-ring').style.animationPlayState = 'running';
+  document.getElementById('buzz-status').textContent = '';
+  document.getElementById('buzz-status').className   = '';
+  show('buzzer-screen');
+});
+
+socket.on('bt:winner', ({ playerName: winnerName }) => {
+  if (winnerName === playerName) {
+    document.getElementById('buzz-status').textContent = '🎉 Vous avez buzzé en premier !';
+    document.getElementById('buzz-status').className   = 'winner';
+  } else {
+    lockBuzzer(`${winnerName} répond`);
+  }
+});
+
+socket.on('bt:validated', ({ title, artist }) => {
+  document.getElementById('buzz-status').textContent = `🎵 ${title} — ${artist}`;
+  document.getElementById('buzz-status').className   = 'winner';
+  document.getElementById('buzz-btn').disabled = true;
+});
+
+socket.on('bt:reset', () => {
+  buzzerLocked = false;
+  document.getElementById('buzz-btn').disabled = false;
+  document.getElementById('buzz-ring').style.animationPlayState = 'running';
+  document.getElementById('buzz-status').textContent = '';
+  document.getElementById('buzz-status').className   = '';
 });
 
 // ─── Reset game ────────────────────────────────────────────────────────────────

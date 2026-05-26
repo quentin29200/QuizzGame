@@ -6,6 +6,8 @@ const {
   insertAnswer, getAnswersByQuestion,
   insertBuzz, setWinner,
   createSession,
+  insertSong, getSongsBySession, updateSong, deleteSong, duplicateSongs,
+  insertBtBuzz, setBtWinner,
 } = require('../db/queries');
 
 const MODE_POINTS = { duo: 2, carre: 3, cash: 5 };
@@ -16,13 +18,17 @@ function getState(code) {
   if (!sessionState.has(code)) {
     sessionState.set(code, {
       currentQuestionId: null,
-      currentChoices: [],      // [{ id, label, is_correct }]
+      currentChoices: [],
       buzzerLocked: false,
-      choiceVotes: {},         // { choiceId: count }
+      choiceVotes: {},
       cashAnswers: [],
-      playerModes: {},         // { playerId: mode }
-      timerDuration: 0,        // secondes, 0 = désactivé
-      timerStartedAt: null,    // timestamp ms (Date.now())
+      playerModes: {},
+      timerDuration: 0,
+      timerStartedAt: null,
+      // Blind Test
+      currentSongId: null,
+      btBuzzerLocked: false,
+      btWinnerPlayerId: null,
     });
   }
   return sessionState.get(code);
@@ -31,7 +37,7 @@ function getState(code) {
 module.exports = function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
 
-    // ── Join ────────────────────────────────────────────────────────────────
+    // -- Join ------------------------------------------------------------------
 
     socket.on('session:join', ({ code, role, name }, ack) => {
       const session = getSessionByCode(code?.toUpperCase());
@@ -41,72 +47,107 @@ module.exports = function registerSocketHandlers(io) {
       socket.data.code = code;
       socket.data.role = role;
 
+      const sessionType = session.type || 'quiz';
+
       if (role === 'admin') {
         socket.join(`${code}:admin`);
-        ack?.({ ok: true });
+        ack?.({ ok: true, sessionType });
+
       } else if (role === 'player' && name) {
         const player = upsertPlayer(session.id, socket.id, name.trim());
         socket.data.playerId = player.id;
         socket.data.playerName = player.name;
-        // Room privée pour notifier ce joueur spécifiquement
         socket.join(`${code}:player:${player.id}`);
         io.to(code).emit('players:update', getPlayersBySession(session.id));
 
-        // Calcul de l'état courant pour resynchroniser le joueur (reconnexion)
         const state = getState(code);
         let gameState = null;
-        if (session.state !== 'lobby') {
-          gameState = { sessionState: session.state };
-          if (state.currentQuestionId) {
-            const q = getQuestionsBySession(session.id).find(q => q.id === state.currentQuestionId);
-            if (q) {
-              gameState.question      = { id: q.id, text: q.text, mode: q.mode };
-              gameState.buzzerLocked  = state.buzzerLocked;
-              const answers  = getAnswersByQuestion(state.currentQuestionId);
-              const myAnswer = answers.find(a => a.player_id === player.id);
-              gameState.hasAnswered   = !!myAnswer;
-              gameState.playerMode    = myAnswer?.player_mode ?? null;
+
+        if (sessionType === 'blindtest') {
+          // Resync BT
+          if (state.currentSongId) {
+            const songs = getSongsBySession(session.id);
+            const song  = songs.find(s => s.id === state.currentSongId);
+            if (song) {
+              gameState = {
+                sessionState: session.state,
+                sessionType,
+                song: { id: song.id },
+                btBuzzerLocked: state.btBuzzerLocked,
+              };
+            }
+          }
+        } else {
+          // Resync Quiz
+          if (session.state !== 'lobby') {
+            gameState = { sessionState: session.state, sessionType };
+            if (state.currentQuestionId) {
+              const q = getQuestionsBySession(session.id).find(q => q.id === state.currentQuestionId);
+              if (q) {
+                gameState.question     = { id: q.id, text: q.text, mode: q.mode };
+                gameState.buzzerLocked = state.buzzerLocked;
+                const answers  = getAnswersByQuestion(state.currentQuestionId);
+                const myAnswer = answers.find(a => a.player_id === player.id);
+                gameState.hasAnswered  = !!myAnswer;
+                gameState.playerMode   = myAnswer?.player_mode ?? null;
+              }
             }
           }
         }
 
-        ack?.({ ok: true, player, gameState });
+        ack?.({ ok: true, player, gameState, sessionType });
+
       } else if (role === 'display') {
-        // Envoyer l'état courant au display qui vient de rejoindre
         const players = getPlayersBySession(session.id);
         socket.emit('players:update', players);
 
         const state = getState(code);
-        if (state.currentQuestionId) {
-          const q = getQuestionsBySession(session.id).find(q => q.id === state.currentQuestionId);
-          if (q) {
-            const count = Object.values(state.choiceVotes).reduce((a, b) => a + b, 0) + state.cashAnswers.length;
-            socket.emit('question:show', {
-              questionId: q.id, text: q.text, mode: q.mode, playerCount: players.length,
-              timerDuration: state.timerDuration,
-              timerStartedAt: state.timerStartedAt,
-            });
-            socket.emit('votes:update', { count, total: players.length, perChoice: { ...state.choiceVotes } });
 
-            // Si la réponse est déjà révélée, envoyer aussi l'état révélé
-            if (session.state === 'reveal') {
-              const correctIds = new Set(state.currentChoices.filter(c => c.is_correct === 1).map(c => c.id));
-              const allChoices = state.currentChoices.map(c => ({ id: c.id, label: c.label, position: c.position }));
-              socket.emit('question:answer-revealed', {
-                correctChoiceIds: [...correctIds],
-                allChoices,
-                perChoice: { ...state.choiceVotes },
+        if (sessionType === 'blindtest') {
+          // Resync display BT
+          if (state.currentSongId) {
+            const songs = getSongsBySession(session.id);
+            const song  = songs.find(s => s.id === state.currentSongId);
+            if (song) {
+              socket.emit('bt:song-show', { songId: song.id });
+              if (state.btWinnerPlayerId) {
+                const winner = players.find(p => p.id === state.btWinnerPlayerId);
+                if (winner) socket.emit('bt:winner', { playerId: winner.id, playerName: winner.name });
+              }
+              if (session.state === 'reveal') {
+                socket.emit('bt:validated', { title: song.title, artist: song.artist });
+              }
+            }
+          }
+        } else {
+          // Resync display Quiz
+          if (state.currentQuestionId) {
+            const q = getQuestionsBySession(session.id).find(q => q.id === state.currentQuestionId);
+            if (q) {
+              const count = Object.values(state.choiceVotes).reduce((a, b) => a + b, 0) + state.cashAnswers.length;
+              socket.emit('question:show', {
+                questionId: q.id, text: q.text, mode: q.mode, playerCount: players.length,
+                timerDuration: state.timerDuration, timerStartedAt: state.timerStartedAt,
               });
+              socket.emit('votes:update', { count, total: players.length, perChoice: { ...state.choiceVotes } });
+              if (session.state === 'reveal') {
+                const correctIds = new Set(state.currentChoices.filter(c => c.is_correct === 1).map(c => c.id));
+                const allChoices = state.currentChoices.map(c => ({ id: c.id, label: c.label, position: c.position }));
+                socket.emit('question:answer-revealed', {
+                  correctChoiceIds: [...correctIds], allChoices, perChoice: { ...state.choiceVotes },
+                });
+              }
             }
           }
         }
-        ack?.({ ok: true });
+        ack?.({ ok: true, sessionType });
+
       } else {
-        ack?.({ ok: true });
+        ack?.({ ok: true, sessionType });
       }
     });
 
-    // ── Admin: questions ────────────────────────────────────────────────────
+    // -- Admin: questions ------------------------------------------------------
 
     socket.on('admin:create-question', ({ code, text, mode, choices, answer }, ack) => {
       const session = getSessionByCode(code);
@@ -141,7 +182,6 @@ module.exports = function registerSocketHandlers(io) {
         replaceChoices(questionId, choices || []);
       }
 
-      // Rafraîchir la liste pour tous les admins de la session
       const updated = getQuestionsBySession(session.id).map(q => ({
         ...q, choices: getChoicesByQuestion(q.id),
       }));
@@ -150,7 +190,7 @@ module.exports = function registerSocketHandlers(io) {
       ack?.({ ok: true, questionId });
     });
 
-    // ── Admin: show question ────────────────────────────────────────────────
+    // -- Admin: show question --------------------------------------------------
 
     socket.on('question:show', ({ code, questionId, timerDuration }) => {
       const session = getSessionByCode(code);
@@ -179,17 +219,16 @@ module.exports = function registerSocketHandlers(io) {
       });
       io.to(code).emit('votes:update', { count: 0, total: playerCount, perChoice: {} });
 
-      // Reset admin answers list
       io.to(`${code}:admin`).emit('answers:reset', {
         choices: state.currentChoices.map(c => ({ id: c.id, label: c.label, is_correct: c.is_correct })),
       });
     });
 
-    // ── Player: choose mode ─────────────────────────────────────────────────
+    // -- Player: choose mode ---------------------------------------------------
 
     socket.on('player:choose-mode', ({ mode }, ack) => {
       const { code, playerId } = socket.data;
-      if (!code || !playerId) return ack?.({ error: 'Non connecté' });
+      if (!code || !playerId) return ack?.({ error: 'Non connecte' });
 
       const state = getState(code);
       if (!state.currentQuestionId) return ack?.({ error: 'Pas de question active' });
@@ -203,7 +242,7 @@ module.exports = function registerSocketHandlers(io) {
       if (mode === 'duo') {
         const correct = choices.find(c => c.is_correct === 1);
         const wrongs  = choices.filter(c => c.is_correct === 0);
-        if (!correct || !wrongs.length) return ack?.({ error: 'Pas de bonne réponse définie' });
+        if (!correct || !wrongs.length) return ack?.({ error: 'Pas de bonne reponse definie' });
         const duoChoices = [correct, wrongs[Math.floor(Math.random() * wrongs.length)]]
           .sort(() => Math.random() - 0.5)
           .map(c => ({ id: c.id, label: c.label }));
@@ -214,11 +253,11 @@ module.exports = function registerSocketHandlers(io) {
       return ack?.({ ok: true, mode: 'carre', choices: choices.map(c => ({ id: c.id, label: c.label })) });
     });
 
-    // ── Player: vote ────────────────────────────────────────────────────────
+    // -- Player: vote ----------------------------------------------------------
 
     socket.on('player:vote', ({ choiceId }, ack) => {
       const { code, playerId, playerName } = socket.data;
-      if (!code || !playerId) return ack?.({ error: 'Non connecté' });
+      if (!code || !playerId) return ack?.({ error: 'Non connecte' });
 
       const session = getSessionByCode(code);
       const state   = getState(code);
@@ -232,7 +271,6 @@ module.exports = function registerSocketHandlers(io) {
 
       if (ok) {
         state.choiceVotes[choiceId] = (state.choiceVotes[choiceId] || 0) + 1;
-        // Notify admin with individual answer detail
         io.to(`${code}:admin`).emit('answer:new', { playerName, playerId, choiceId, choiceLabel, playerMode });
       }
 
@@ -241,11 +279,11 @@ module.exports = function registerSocketHandlers(io) {
       io.to(code).emit('votes:update', { count, total, perChoice: { ...state.choiceVotes } });
     });
 
-    // ── Player: cash answer ─────────────────────────────────────────────────
+    // -- Player: cash answer ---------------------------------------------------
 
     socket.on('player:answer', ({ text }, ack) => {
       const { code, playerId, playerName } = socket.data;
-      if (!code || !playerId) return ack?.({ error: 'Non connecté' });
+      if (!code || !playerId) return ack?.({ error: 'Non connecte' });
 
       const session = getSessionByCode(code);
       const state   = getState(code);
@@ -256,7 +294,6 @@ module.exports = function registerSocketHandlers(io) {
 
       if (ok) {
         state.cashAnswers.push({ playerName, playerId, text: text?.trim() });
-        // answer:new covers cash too (with choiceId=null)
         io.to(`${code}:admin`).emit('answer:new', { playerName, playerId, choiceId: null, choiceLabel: null, playerMode: 'cash', text: text?.trim() });
       }
 
@@ -265,7 +302,7 @@ module.exports = function registerSocketHandlers(io) {
       io.to(code).emit('votes:update', { count, total, perChoice: { ...state.choiceVotes } });
     });
 
-    // ── Admin: reveal answer ────────────────────────────────────────────────
+    // -- Admin: reveal answer --------------------------------------------------
 
     socket.on('question:reveal-answer', ({ code }) => {
       const session = getSessionByCode(code);
@@ -277,7 +314,6 @@ module.exports = function registerSocketHandlers(io) {
       const correctIds = new Set(choices.filter(c => c.is_correct === 1).map(c => c.id));
       const allChoices = choices.map(c => ({ id: c.id, label: c.label, position: c.position }));
 
-      // Auto-score duo + carré
       const answers = getAnswersByQuestion(state.currentQuestionId);
       for (const ans of answers) {
         if (ans.player_mode === 'cash') continue;
@@ -296,11 +332,11 @@ module.exports = function registerSocketHandlers(io) {
       io.to(code).emit('players:update', getPlayersBySession(session.id));
     });
 
-    // ── Buzzer ──────────────────────────────────────────────────────────────
+    // -- Buzzer ----------------------------------------------------------------
 
     socket.on('player:buzz', (_, ack) => {
       const { code, playerId, playerName } = socket.data;
-      if (!code || !playerId) return ack?.({ error: 'Non connecté' });
+      if (!code || !playerId) return ack?.({ error: 'Non connecte' });
 
       const state = getState(code);
       if (state.buzzerLocked) return ack?.({ ok: false, locked: true });
@@ -340,7 +376,7 @@ module.exports = function registerSocketHandlers(io) {
       ack?.({ ok: true });
     });
 
-    // ── Admin: score update ─────────────────────────────────────────────────
+    // -- Admin: score update ---------------------------------------------------
 
     socket.on('admin:score-update', ({ code, playerId, delta }, ack) => {
       const session = getSessionByCode(code);
@@ -350,8 +386,6 @@ module.exports = function registerSocketHandlers(io) {
       ack?.({ ok: true });
     });
 
-    // Validation/invalidation d'une réponse cash : met à jour le score
-    // ET notifie le joueur concerné via sa room privée
     socket.on('admin:cash-result', ({ code, playerId, valid }, ack) => {
       const session = getSessionByCode(code);
       if (!session) return ack?.({ error: 'Session introuvable' });
@@ -361,13 +395,12 @@ module.exports = function registerSocketHandlers(io) {
       ack?.({ ok: true });
     });
 
-    // ── Reset game ──────────────────────────────────────────────────────────
+    // -- Reset game ------------------------------------------------------------
 
     socket.on('admin:reset-game', ({ code }, ack) => {
       const session = getSessionByCode(code);
       if (!session) return ack?.({ error: 'Session introuvable' });
 
-      // Vider l'état en mémoire
       const state = getState(code);
       state.currentQuestionId = null;
       state.currentChoices    = [];
@@ -376,16 +409,14 @@ module.exports = function registerSocketHandlers(io) {
       state.cashAnswers       = [];
       state.playerModes       = {};
 
-      // Remettre les scores à 0 en DB
       resetPlayerScores(session.id);
       updateSessionState(code, 'lobby');
 
-      // Notifier tout le monde
       io.to(code).emit('game:reset', { players: getPlayersBySession(session.id) });
       ack?.({ ok: true });
     });
 
-    // ── Duplicate questions to a new session ────────────────────────────────
+    // -- Duplicate questions ---------------------------------------------------
 
     socket.on('admin:duplicate-questions', ({ fromCode, toCode }, ack) => {
       try {
@@ -402,14 +433,123 @@ module.exports = function registerSocketHandlers(io) {
       }
     });
 
-    // ── Session end ─────────────────────────────────────────────────────────
+    // -- Blind Test: song management -------------------------------------------
+
+    socket.on('bt:get-songs', ({ code }) => {
+      const session = getSessionByCode(code);
+      if (!session) return;
+      socket.emit('bt:songs-list', getSongsBySession(session.id));
+    });
+
+    socket.on('bt:add-song', ({ code, title, artist, youtubeUrl }, ack) => {
+      const session = getSessionByCode(code);
+      if (!session) return ack?.({ error: 'Session introuvable' });
+      const songs = getSongsBySession(session.id);
+      const id = insertSong(session.id, title, artist, youtubeUrl, songs.length);
+      io.to(`${code}:admin`).emit('bt:songs-list', getSongsBySession(session.id));
+      ack?.({ ok: true, songId: id });
+    });
+
+    socket.on('bt:update-song', ({ code, songId, title, artist, youtubeUrl }, ack) => {
+      const session = getSessionByCode(code);
+      if (!session) return ack?.({ error: 'Session introuvable' });
+      updateSong(songId, title, artist, youtubeUrl);
+      io.to(`${code}:admin`).emit('bt:songs-list', getSongsBySession(session.id));
+      ack?.({ ok: true });
+    });
+
+    socket.on('bt:duplicate-songs', ({ fromCode, toCode }, ack) => {
+      try {
+        const from = getSessionByCode(fromCode?.toUpperCase());
+        if (!from) return ack?.({ error: 'Session source introuvable' });
+        const to   = getSessionByCode(toCode?.toUpperCase());
+        if (!to)   return ack?.({ error: 'Session destination introuvable' });
+        const count = duplicateSongs(from.id, to.id);
+        ack?.({ ok: true, songCount: count });
+      } catch (e) {
+        ack?.({ error: e.message || 'Erreur serveur' });
+      }
+    });
+
+    socket.on('bt:delete-song', ({ code, songId }, ack) => {
+      const session = getSessionByCode(code);
+      if (!session) return ack?.({ error: 'Session introuvable' });
+      deleteSong(songId);
+      io.to(`${code}:admin`).emit('bt:songs-list', getSongsBySession(session.id));
+      ack?.({ ok: true });
+    });
+
+    // -- Blind Test: game flow -------------------------------------------------
+
+    socket.on('bt:song-show', ({ code, songId }) => {
+      const session = getSessionByCode(code);
+      if (!session) return;
+
+      const state = getState(code);
+      state.currentSongId    = songId;
+      state.btBuzzerLocked   = false;
+      state.btWinnerPlayerId = null;
+
+      updateSessionState(code, 'question');
+      io.to(code).emit('bt:song-show', { songId });
+    });
+
+    socket.on('bt:buzz', (_, ack) => {
+      const { code, playerId, playerName } = socket.data;
+      if (!code || !playerId) return ack?.({ error: 'Non connecte' });
+
+      const state = getState(code);
+      if (state.btBuzzerLocked) return ack?.({ ok: false, locked: true });
+      if (!state.currentSongId) return ack?.({ error: 'Pas de chanson active' });
+
+      const session = getSessionByCode(code);
+      const buzzId  = insertBtBuzz(session.id, state.currentSongId, playerId, Date.now());
+      if (!buzzId) return ack?.({ ok: false, locked: true });
+
+      state.btBuzzerLocked   = true;
+      state.btWinnerPlayerId = playerId;
+      setBtWinner(buzzId);
+
+      io.to(code).emit('bt:winner', { playerId, playerName });
+      ack?.({ ok: true, winner: true });
+    });
+
+    socket.on('bt:reset', ({ code }) => {
+      const state = getState(code);
+      state.btBuzzerLocked   = false;
+      state.btWinnerPlayerId = null;
+      io.to(code).emit('bt:reset');
+    });
+
+    socket.on('bt:validate', ({ code, playerId, valid }, ack) => {
+      const session = getSessionByCode(code);
+      if (!session) return ack?.({ error: 'Session introuvable' });
+
+      const state = getState(code);
+
+      if (valid) {
+        updatePlayerScore(playerId, 5);
+        const songs = getSongsBySession(session.id);
+        const song  = songs.find(s => s.id === state.currentSongId);
+        updateSessionState(code, 'reveal');
+        io.to(code).emit('players:update', getPlayersBySession(session.id));
+        io.to(code).emit('bt:validated', { title: song?.title ?? '', artist: song?.artist ?? '' });
+      } else {
+        state.btBuzzerLocked   = false;
+        state.btWinnerPlayerId = null;
+        io.to(code).emit('bt:reset');
+      }
+      ack?.({ ok: true });
+    });
+
+    // -- Session end -----------------------------------------------------------
 
     socket.on('session:end', ({ code }) => {
       updateSessionState(code, 'ended');
       io.to(code).emit('session:end');
     });
 
-    // ── Disconnect ──────────────────────────────────────────────────────────
+    // -- Disconnect ------------------------------------------------------------
 
     socket.on('disconnect', () => {
       const { code, role } = socket.data;
